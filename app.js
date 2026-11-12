@@ -59,6 +59,8 @@
   let arRunning = false;
   let arPlaced = false;
   let arStarting = false;
+  let sampleManuallyResized = false;
+  let firstARPlacement = true;
   let dragEdge = null;
   let orbitPointer = null;
   let orbitAngle = .22;
@@ -250,6 +252,7 @@
         selectedProfile=profile;
         $('profile-count').textContent=String(i+1).padStart(2,'0')+' / 05';
         renderControls();loadSelectedSafe();
+        if (arRunning && arPlaced) closeArPanel();
       };
       profileRow.append(button);
     });
@@ -335,6 +338,7 @@
       e.preventDefault();e.stopPropagation();
       if (arRunning&&!arPlaced) return;
       dragEdge=handle.dataset.edge;
+      sampleManuallyResized = true;
       handle.classList.add('dragging');
       handle.setPointerCapture(e.pointerId);
     });
@@ -385,6 +389,8 @@
   previewLoop();
 
   function resetSize() {
+    sampleManuallyResized=false;
+    firstARPlacement=true;
     Object.assign(bounds,DEFAULT_BOUNDS);
     updateTrims();
     if (!arRunning) {
@@ -399,13 +405,43 @@
   $('distance').addEventListener('input',()=>{
     $('distance-value').textContent=Number($('distance').value).toFixed(1)+' m';
   });
+  function closeArPanel() {
+    document.querySelector('.config-panel').classList.remove('panel-open');
+    document.body.classList.remove('ar-panel-open');
+    $('customize').textContent='FINISHES';
+  }
+  function toggleArPanel() {
+    if (!arRunning || !arPlaced) return;
+    const isOpen=document.querySelector('.config-panel').classList.toggle('panel-open');
+    document.body.classList.toggle('ar-panel-open',isOpen);
+    $('customize').textContent=isOpen?'HIDE FINISHES':'FINISHES';
+  }
+  $('customize').onclick=toggleArPanel;
+  $('close-panel').onclick=closeArPanel;
+  function fitARSampleToScreen(distance) {
+    // Match the actual tracking camera's field of view; don't estimate it from CSS pixels.
+    // This starts the sample at around 85% of the available screen width/height.
+    activeCamera.updateProjectionMatrix();
+    const projection=activeCamera.projectionMatrix.elements;
+    const px=Math.abs(projection[0]),py=Math.abs(projection[5]);
+    if (!Number.isFinite(px)||!Number.isFinite(py)||px<0.05||py<0.05) return;
+    const visibleWidth=(2*distance/px)*.86;
+    const visibleHeight=(2*distance/py)*.78;
+    const width=T.MathUtils.clamp(visibleWidth,.5,3.8);
+    const height=T.MathUtils.clamp(visibleHeight,.5,3.8);
+    Object.assign(bounds,{left:-width/2,right:width/2,bottom:-height/2,top:height/2});
+    updateTrims();
+  }
   function startPlacing() {
     if (!arRunning) return;
+    closeArPanel();
     arPlaced=false;
     placement.visible=false;
     stage.classList.add('placing');
+    document.body.classList.add('placing');
     $('placement-panel').hidden=false;
     $('reposition').hidden=true;
+    $('customize').hidden=true;
     tell('Aim the crosshair at the wall where you want the sample');
   }
   function placeOnWall() {
@@ -414,6 +450,8 @@
     const pos=activeCamera.getWorldPosition(new T.Vector3());
     const forward=activeCamera.getWorldDirection(new T.Vector3()).normalize();
     const distance=Number($('distance').value);
+    if (firstARPlacement && !sampleManuallyResized) fitARSampleToScreen(distance);
+    firstARPlacement=false;
     placement.position.copy(pos).addScaledVector(forward,distance);
     const towardCamera=new T.Vector3(-forward.x,0,-forward.z).normalize();
     if (towardCamera.lengthSq()<.001) towardCamera.set(0,0,1);
@@ -422,19 +460,26 @@
     placement.updateMatrixWorld(true);
     arPlaced=true;
     stage.classList.remove('placing');
+    document.body.classList.remove('placing');
     $('placement-panel').hidden=true;
     $('reposition').hidden=false;
+    $('customize').hidden=false;
     tell('Sample anchored. Move slowly and check its alignment.',3200);
   }
   $('place').onclick=placeOnWall;
   $('reposition').onclick=startPlacing;
 
   function setMode(ar) {
+    closeArPanel();
     stage.classList.toggle('ar-mode',ar);
+    document.body.classList.toggle('ar-active',ar);
+    if (!ar) document.body.classList.remove('placing');
     $('mode-label').textContent=ar?'LIVE AR':'3D PREVIEW';
     $('start-ar').hidden=ar;
     $('return-preview').hidden=!ar;
     $('reposition').hidden=true;
+    $('customize').hidden=true;
+    $('close-panel').hidden=!ar;
     previewCanvas.hidden=ar;
     cameraCanvas.hidden=!ar;
   }
@@ -450,6 +495,11 @@
       XR8.GlTextureRenderer.pipelineModule(),
       XR8.Threejs.pipelineModule(),
       XR8.XrController.pipelineModule(),
+      // Required on Safari: synchronize viewport and WebGL drawing buffer with
+      // the full-screen canvas, including orientation and browser-bar changes.
+      ...(window.XRExtras && window.XRExtras.FullWindowCanvas
+          ? [window.XRExtras.FullWindowCanvas.pipelineModule()]
+          : []),
       {
         name:'lux-scene',
         onStart:()=>{
@@ -472,6 +522,7 @@
         ]
       }
     ]);
+    // The fullscreen stage/canvas must already be visible before XR8.run().
     XR8.run({canvas:cameraCanvas,allowedDevices:XR8.XrConfig.device().MOBILE_AND_HEADSETS});
   }
   async function startAR() {
@@ -497,6 +548,7 @@
       if (previewRenderer) {previewRenderer.dispose();previewRenderer=null;}
       arRunning=true;
       arPlaced=false;
+      firstARPlacement=true;
       setMode(true);
       launchXR();
     } catch(error) {
@@ -522,6 +574,7 @@
     activeCamera=previewCamera;
     stageScene.add(placement,sceneLights);
     stage.classList.remove('placing');
+    document.body.classList.remove('placing');
     $('placement-panel').hidden=true;
     setMode(false);
     if (!previewRenderer) createPreviewRenderer();
