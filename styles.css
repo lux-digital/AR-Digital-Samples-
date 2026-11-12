@@ -38,3 +38,16 @@
 dialog{max-width:420px;width:calc(100% - 30px);border:0;border-radius:15px;padding:32px;background:#fff;box-shadow:0 24px 90px #0007}dialog::backdrop{background:#000b}dialog h2{font-size:24px;margin:8px 0 20px}dialog p{line-height:1.6;font-size:13px;color:#515151}dialog .primary-button{width:100%;margin-top:12px}.dialog-close{float:right;background:none;border:0;font-size:27px}
 @media(max-width:900px){#app{display:flex;flex-direction:column;overflow:visible}.stage{height:68dvh;min-height:450px;flex:none}.config-panel{min-height:unset;padding:27px 22px 25px}.profile-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.profile-card{min-height:59px}.finish-row{grid-template-columns:repeat(5,minmax(0,1fr))}.footer-line{margin-top:20px}.topbar{padding:19px 20px}.top-tag{font-size:8px}.stage-top-actions{top:75px;left:14px}.status-pill{top:17%}.stage-bottom-actions{bottom:14px}.placement-panel{bottom:80px}}
 @media(max-width:550px){.stage{height:61dvh;min-height:390px}.stage.ar-mode{height:72dvh}.brand>b{font-size:29px}.top-tag{max-width:50%;line-height:1.5}.stage-top-actions{top:66px}.icon-button{height:41px;padding:6px 9px;font-size:11px}.status-pill{top:120px;font-size:11px}.config-panel{padding:25px 18px}.panel-top h1{font-size:25px}.section-heading{margin:28px 0 12px}.profile-row{gap:7px}.profile-card{font-size:10px;padding:10px 8px;gap:5px;min-height:51px}.finish-row{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.finish-card .finish-thumb{height:43px}.placement-panel{bottom:77px}.edge-handle{height:44px;width:44px}}
+
+/* During live AR, preserve the camera view and keep controls in a compact bottom sheet. */
+@media (max-width:900px) {
+  body:has(.stage.ar-mode){overflow:hidden}
+  .stage.ar-mode{position:fixed;inset:0;height:100dvh;min-height:100dvh;width:100%;z-index:1}
+  .stage.ar-mode ~ .config-panel{position:fixed;bottom:0;left:0;right:0;z-index:12;height:33dvh;min-height:unset;overflow-y:auto;border-radius:18px 18px 0 0;padding-top:18px;box-shadow:0 -12px 46px #0004}
+  .stage.ar-mode ~ .config-panel .section-heading{margin-top:16px}
+  .stage.ar-mode ~ .config-panel .panel-top h1{font-size:21px}
+  .stage.ar-mode:not(.placing) .stage-bottom-actions{bottom:calc(33dvh + 12px)}
+  .stage.ar-mode.placing ~ .config-panel{display:none}
+  .stage.ar-mode.placing .stage-bottom-actions{bottom:12px}
+  .stage.ar-mode.placing .placement-panel{bottom:80px}
+}
