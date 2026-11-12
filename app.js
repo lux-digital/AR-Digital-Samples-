@@ -514,6 +514,12 @@
           xr.renderer.toneMapping=T.ACESFilmicToneMapping;
           xr.renderer.toneMappingExposure=1.3;
           activeScene.add(placement,sceneLights);
+          // 8th Wall's official three.js sample synchronizes the initial
+          // world-tracking origin to the same XR scene camera.
+          XR8.XrController.updateCameraProjectionMatrix({
+            origin: xr.camera.position,
+            facing: xr.camera.quaternion
+          });
           startPlacing();
           tell('Move phone slowly to let tracking initialize',2200);
         },
@@ -567,6 +573,9 @@
   function stopAR() {
     if (!arRunning) return;
     if (window.XR8 && window.XR8.stop) window.XR8.stop();
+    // XRExtras.FullWindowCanvas reparents this canvas into document.body;
+    // return it to the stage after stopping, so a new AR session starts cleanly.
+    if (cameraCanvas.parentElement !== stage) stage.appendChild(cameraCanvas);
     arRunning=false;
     arPlaced=false;
     trackingNormal=false;
