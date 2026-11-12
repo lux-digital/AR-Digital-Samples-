@@ -111,3 +111,32 @@ body.ar-active .config-panel .panel-top h1{font-size:23px}
   body.ar-active .stage-top-actions{top:calc(62px + env(safe-area-inset-top))}
   body.ar-active .status-pill{top:calc(120px + env(safe-area-inset-top))}
 }
+
+/* Fix AR black screen: XRExtras.FullWindowCanvas moves #camerafeed into
+   document.body during onAttach(). Keep the moved canvas below the LUX HUD
+   and make the fixed overlay stage transparent so the camera is visible. */
+body.ar-active > #camerafeed {
+  position:fixed!important;
+  top:0!important;left:0!important;right:0!important;bottom:0!important;
+  display:block!important;
+  width:100vw!important;height:100dvh!important;
+  z-index:0!important;
+  object-fit:cover;
+  pointer-events:none;
+}
+body.ar-active #app {
+  position:relative;
+  z-index:1;
+  background:transparent!important;
+  pointer-events:none;
+}
+body.ar-active .stage.ar-mode {
+  background:transparent!important;
+  pointer-events:none;
+}
+body.ar-active .stage.ar-mode button,
+body.ar-active .stage.ar-mode input,
+body.ar-active .config-panel,
+body.ar-active .config-panel button {
+  pointer-events:auto;
+}
