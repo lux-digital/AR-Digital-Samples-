@@ -274,6 +274,7 @@
         selectedFinish=finish;
         $('finish-label').textContent=finish.name;
         renderControls();loadSelectedSafe();
+        if (arRunning && arPlaced) closeArPanel();
       };
       finishRow.append(button);
     });
@@ -421,7 +422,7 @@
   function fitARSampleToScreen(distance) {
     // Match the actual tracking camera's field of view; don't estimate it from CSS pixels.
     // This starts the sample at around 85% of the available screen width/height.
-    activeCamera.updateProjectionMatrix();
+    // Preserve XR8 calibrated projection matrix; do not recalculate it.
     const projection=activeCamera.projectionMatrix.elements;
     const px=Math.abs(projection[0]),py=Math.abs(projection[5]);
     if (!Number.isFinite(px)||!Number.isFinite(py)||px<0.05||py<0.05) return;
