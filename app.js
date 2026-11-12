@@ -491,6 +491,10 @@
   function launchXR() {
     const XR8=window.XR8;
     if (!XR8) throw new Error('8th Wall engine has not loaded');
+    const fullWindow=(window.XRExtras && window.XRExtras.FullWindowCanvas) || XR8.FullWindowCanvas;
+    if (!fullWindow || !fullWindow.pipelineModule) {
+      throw new Error('Full-screen camera helper unavailable. Please refresh.');
+    }
     XR8.XrController.configure({disableWorldTracking:false,scale:'absolute',enableLighting:false});
     XR8.addCameraPipelineModules([
       XR8.GlTextureRenderer.pipelineModule(),
@@ -498,9 +502,7 @@
       XR8.XrController.pipelineModule(),
       // Required on Safari: synchronize viewport and WebGL drawing buffer with
       // the full-screen canvas, including orientation and browser-bar changes.
-      ...(window.XRExtras && window.XRExtras.FullWindowCanvas
-          ? [window.XRExtras.FullWindowCanvas.pipelineModule()]
-          : []),
+      fullWindow.pipelineModule(),
       {
         name:'lux-scene',
         onStart:()=>{
