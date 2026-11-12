@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#111111">
+  <title>LUX | AR Digital Samples</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main id="app">
+    <div class="stage" id="stage">
+      <canvas id="preview" aria-label="Interactive 3D preview of LUX cladding"></canvas>
+      <canvas id="camerafeed" aria-label="Augmented reality camera" hidden></canvas>
+      <div class="stage-vignette" aria-hidden="true"></div>
+      <div class="crosshair" id="crosshair" aria-hidden="true"><span></span><span></span></div>
+      <div id="handles" aria-label="Resize sample">
+        <button class="edge-handle" data-edge="top" aria-label="Drag to adjust top edge"><img src="./ICONS/EXPAND.png" alt="" onerror="this.hidden=true"></button>
+        <button class="edge-handle" data-edge="right" aria-label="Drag to adjust right edge"><img src="./ICONS/EXPAND.png" alt="" onerror="this.hidden=true"></button>
+        <button class="edge-handle" data-edge="bottom" aria-label="Drag to adjust bottom edge"><img src="./ICONS/EXPAND.png" alt="" onerror="this.hidden=true"></button>
+        <button class="edge-handle" data-edge="left" aria-label="Drag to adjust left edge"><img src="./ICONS/EXPAND.png" alt="" onerror="this.hidden=true"></button>
+      </div>
+      <header class="topbar">
+        <div class="brand"><b>LU<span>X</span></b><small>ARCHITECTURAL PRODUCTS</small></div>
+        <span class="top-tag">DIGITAL SAMPLES <span class="top-dot"></span> <span id="mode-label">3D PREVIEW</span></span>
+      </header>
+      <div class="stage-top-actions">
+        <button id="reset" class="icon-button" title="Reset size and position" aria-label="Reset"><img src="./ICONS/HOME.png" alt="" onerror="this.hidden=true"><span>Reset</span></button>
+        <button id="help" class="icon-button" title="How to use" aria-label="Help"><span class="questionmark">?</span><span>Help</span></button>
+      </div>
+      <div class="status-pill" id="status" role="status" aria-live="polite">Rotate the 3D view by dragging. Resize using the four handles.</div>
+      <div class="placement-panel" id="placement-panel" hidden>
+        <div class="placement-title">POINT AT A WALL</div>
+        <div class="placement-copy">Stand facing the wall, aim the crosshair where the sample should go, then tap Place.</div>
+        <label for="distance">Wall distance <strong id="distance-value">1.5 m</strong></label>
+        <input id="distance" type="range" min="0.5" max="4" step="0.1" value="1.5">
+        <button id="place" class="primary-button">PLACE ON WALL</button>
+      </div>
+      <div class="stage-bottom-actions">
+        <button id="start-ar" class="primary-button">START AR <span class="button-icon">↗</span></button>
+        <button id="return-preview" class="outline-button" hidden>← 3D PREVIEW</button>
+        <button id="reposition" class="outline-button" hidden>REPOSITION</button>
+      </div>
+    </div>
+    <section class="config-panel" aria-label="Customize LUX digital sample">
+      <div class="panel-top">
+        <div><span class="eyebrow">LUX COLLECTION</span><h1>Find your finish.</h1></div>
+        <div class="dimensions" id="dimensions">1.60 × 1.10 m</div>
+      </div>
+      <div class="section-heading"><h2>Profile</h2><span id="profile-count">01 / 05</span></div>
+      <div class="profile-row" id="profiles"></div>
+      <div class="section-heading finish-heading"><h2>Woodgrain finish</h2><span id="finish-label">CHARWOOD</span></div>
+      <div class="finish-row" id="finishes"></div>
+      <footer class="footer-line">
+        <span>Real LUX profiles • visualization prototype</span>
+        <a href="https://luxarpro.com/" target="_blank" rel="noopener">LUXARPRO.COM ↗</a>
+      </footer>
+    </section>
+  </main>
+  <dialog id="help-dialog">
+    <form method="dialog"><button class="dialog-close" aria-label="Close">×</button></form>
+    <span class="eyebrow">HOW IT WORKS</span><h2>Design it on your wall.</h2>
+    <p><b>3D Preview:</b> Drag anywhere outside the edge controls to orbit around the sample. Drag any of the four circular handles to change the sample size.</p>
+    <p><b>AR on a phone:</b> Tap START AR, allow camera access, stand in front of a wall, aim at it, set your approximate distance, then tap PLACE ON WALL. Walk around to inspect it. Tap REPOSITION to try again.</p>
+    <p>Placement is manually aligned; this prototype does not automatically detect the wall surface. Tracking quality and true scale must be tested on real devices.</p>
+    <button class="primary-button" onclick="document.getElementById('help-dialog').close()">GOT IT</button>
+  </dialog>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/build/three.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/loaders/GLTFLoader.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js" async crossorigin="anonymous" data-preload-chunks="slam"></script>
+  <script src="./app.js" defer></script>
+  <!-- Copyright (c) Niantic Spatial, Inc. 8th Wall Engine Binary used under its license.
+       https://github.com/8thwall/engine/blob/main/LICENSE -->
+</body>
+</html>
