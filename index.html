@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
   <meta name="theme-color" content="#111111">
   <title>LUX | AR Digital Samples</title>
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./styles.css?v=2">
 </head>
 <body>
   <main id="app">
@@ -32,17 +32,19 @@
       <div class="placement-panel" id="placement-panel" hidden>
         <div class="placement-title">POINT AT A WALL</div>
         <div class="placement-copy">Stand facing the wall, aim the crosshair where the sample should go, then tap Place.</div>
-        <label for="distance">Wall distance <strong id="distance-value">1.5 m</strong></label>
-        <input id="distance" type="range" min="0.5" max="4" step="0.1" value="1.5">
+        <label for="distance">Wall distance <strong id="distance-value">1.2 m</strong></label>
+        <input id="distance" type="range" min="0.5" max="4" step="0.1" value="1.2">
         <button id="place" class="primary-button">PLACE ON WALL</button>
       </div>
       <div class="stage-bottom-actions">
         <button id="start-ar" class="primary-button">START AR <span class="button-icon">↗</span></button>
         <button id="return-preview" class="outline-button" hidden>← 3D PREVIEW</button>
         <button id="reposition" class="outline-button" hidden>REPOSITION</button>
+        <button id="customize" class="primary-button" hidden>FINISHES</button>
       </div>
     </div>
     <section class="config-panel" aria-label="Customize LUX digital sample">
+      <button id="close-panel" class="panel-close-button" type="button" hidden aria-label="Close finish selector">×</button>
       <div class="panel-top">
         <div><span class="eyebrow">LUX COLLECTION</span><h1>Find your finish.</h1></div>
         <div class="dimensions" id="dimensions">1.60 × 1.10 m</div>
@@ -67,8 +69,9 @@
   </dialog>
   <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/build/three.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/loaders/GLTFLoader.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@8thwall/xrextras@1/dist/xrextras.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js" async crossorigin="anonymous" data-preload-chunks="slam"></script>
-  <script src="./app.js" defer></script>
+  <script src="./app.js?v=2" defer></script>
   <!-- Copyright (c) Niantic Spatial, Inc. 8th Wall Engine Binary used under its license.
        https://github.com/8thwall/engine/blob/main/LICENSE -->
 </body>
