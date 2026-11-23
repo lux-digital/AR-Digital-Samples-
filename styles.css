@@ -231,3 +231,80 @@ body.ar-active.placing .topbar .top-tag{
   pointer-events:none;
 }
 .lux-wall-debug[hidden]{display:none!important}
+
+/* v10: always-available, user-exportable AR diagnostics.
+   The control is outside the stage so clean scanning UI cannot hide it. */
+#lux-diag-root{
+  position:fixed;inset:0;z-index:9000;
+  pointer-events:none;font-family:Arial,sans-serif;
+}
+body:not(.lux-diag-active) #lux-diag-root,
+body.splash-visible #lux-diag-root{display:none!important}
+.lux-diag-fab{
+  position:fixed;top:calc(90px + env(safe-area-inset-top));right:16px;
+  z-index:9001;
+  border:1px solid rgba(255,255,255,.68);
+  border-radius:11px;min-height:44px;
+  padding:0 14px;background:rgba(19,19,19,.83);
+  color:#fff;box-shadow:0 5px 20px #0008;
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  font-size:10px;font-weight:800;letter-spacing:.6px;
+  pointer-events:auto;touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+}
+.lux-diag-fab:before{content:'↓';font-size:17px;margin-right:8px;vertical-align:-1px}
+.lux-diag-overlay{
+  position:fixed;inset:0;z-index:9002;
+  display:flex;justify-content:center;align-items:center;
+  padding:24px 16px max(24px,env(safe-area-inset-bottom));
+  background:rgba(0,0,0,.72);
+  pointer-events:auto;
+}
+.lux-diag-overlay[hidden]{display:none!important}
+.lux-diag-sheet{
+  width:min(100%,430px);max-height:90dvh;
+  overflow-y:auto;
+  padding:28px 22px 20px;
+  border-radius:19px;background:#17191b;color:#fff;
+  border:1px solid #ffffff45;
+  box-shadow:0 24px 70px #000a;
+  position:relative;
+  -webkit-overflow-scrolling:touch;
+}
+.lux-diag-sheet h2{
+  font:700 22px/1.2 Arial,sans-serif;
+  margin:0 36px 15px 0;
+}
+.lux-diag-sheet p{
+  font:400 12px/1.55 Arial,sans-serif;
+  margin:0 0 15px;color:#ddd;
+}
+.lux-diag-close{
+  position:absolute;top:12px;right:13px;
+  color:white;background:transparent;border:0;
+  padding:6px 10px;font-size:28px;line-height:1;
+}
+.lux-diag-summary{
+  margin:10px 0 17px;padding:12px;
+  background:#0d1012;border:1px solid #ffffff22;
+  border-radius:9px;color:#9aeeb8;
+  font:11px/1.55 ui-monospace,monospace;
+  white-space:pre-wrap;word-break:break-word;
+}
+.lux-diag-save,.lux-diag-copy{
+  display:block;width:100%;min-height:48px;margin:9px 0;
+  padding:13px 12px;text-align:center;
+  border-radius:10px;font-size:12px;font-weight:800;
+  letter-spacing:.3px;touch-action:manipulation;
+}
+.lux-diag-save{background:#fff;color:#161616;border:1px solid #fff}
+.lux-diag-copy{background:#282b30;color:#fff;border:1px solid #ffffff7a}
+.lux-diag-sheet .lux-diag-instructions{margin:15px 0 4px;color:#c4c4c4}
+.lux-diag-sheet .lux-diag-feedback{color:#a5f6ba;font-weight:700;margin:8px 0 0}
+@media(max-width:550px){
+  .lux-diag-fab{
+    top:calc(93px + env(safe-area-inset-top));
+    right:max(12px,env(safe-area-inset-right));
+    font-size:10px;min-height:45px;padding:0 12px;
+  }
+}
