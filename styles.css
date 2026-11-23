@@ -140,3 +140,39 @@ body.ar-active .config-panel,
 body.ar-active .config-panel button {
   pointer-events:auto;
 }
+
+/* v4: clean tap-to-place camera view. Only the circled top LUX header remains. */
+.brand-image{
+  display:block;
+  width:clamp(118px,33vw,167px);
+  height:auto;
+  object-fit:contain;
+}
+body.ar-active.placing .stage-top-actions,
+body.ar-active.placing .status-pill,
+body.ar-active.placing .stage-bottom-actions,
+body.ar-active.placing #handles,
+body.ar-active.placing .crosshair,
+body.ar-active.placing .placement-panel,
+body.ar-active.placing .stage-vignette{
+  display:none!important;
+}
+body.ar-active.placing .stage.ar-mode{
+  pointer-events:auto; /* Tap anywhere on the clear camera view to anchor. */
+  touch-action:manipulation;
+}
+body.ar-active.placing .topbar{
+  z-index:40;
+  pointer-events:none;
+}
+body.ar-active.placing .config-panel{
+  display:none!important;
+}
+body.ar-active.placing .topbar .top-tag{
+  color:#fff;
+}
+@media(max-width:550px){
+  body.ar-active .topbar{padding:calc(18px + env(safe-area-inset-top)) 19px 0}
+  body.ar-active .brand-image{width:clamp(122px,34vw,155px)}
+  body.ar-active .topbar .top-tag{font-size:9px;letter-spacing:1.2px}
+}
