@@ -192,6 +192,10 @@ window.addEventListener('error',e=>note('error',{message:e.message,filename:e.fi
 window.addEventListener('unhandledrejection',e=>note('error',{source:'unhandled-rejection',message:String(e.reason&&e.reason.message||e.reason)}));
 document.addEventListener('visibilitychange',()=>note('visibility',{hidden:document.hidden}));
 note('page-loaded',{version:'ar-test-10'});
+// Keep the reporting UI available even if app.js or the XR engine fails to
+// initialize. A Start AR tap activates logging independently of the AR code.
+const splashButton=document.getElementById('splash-start');
+if(splashButton) splashButton.addEventListener('click',activate,{capture:true});
 window.luxDiagnostics={
   activate,note,sample,
   state(v){state=String(v);note('state',{state});},
