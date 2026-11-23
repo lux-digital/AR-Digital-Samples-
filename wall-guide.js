@@ -21,10 +21,36 @@ window.createLuxWallGuide=function(THREE){
   line.setAttribute('stroke-width','3');
   line.setAttribute('stroke-linecap','round');
   svg.appendChild(line);
+  // Screen-space reference grid always visible while searching. This is NOT
+  // detected geometry; it prevents an empty AR screen if video pixels are absent.
+  const referenceGrid=document.createElementNS(svgNS,'path');
+  referenceGrid.setAttribute('class','lux-wall-reference-grid');
+  let gridPath='';
+  for(let i=0;i<=6;i++){
+    const x=170+i*110;
+    gridPath+='M '+x+' 300 L '+x+' 750 ';
+  }
+  for(let i=0;i<=5;i++){
+    const y=300+i*90;
+    gridPath+='M 170 '+y+' L 830 '+y+' ';
+  }
+  referenceGrid.setAttribute('d',gridPath);
+  svg.insertBefore(referenceGrid,line);
   const instructions=document.createElement('div');
   instructions.className='lux-wall-instructions';
   instructions.textContent='Slowly scan the bottom edge of a wall';
-  overlay.append(svg,instructions);
+  const controls=document.createElement('div');
+  controls.className='lux-wall-actions';
+  const manualHint=document.createElement('div');
+  manualHint.className='lux-wall-manual-hint';
+  manualHint.textContent='Tap two points on the floor–wall edge for manual alignment.';
+  const testButton=document.createElement('button');
+  testButton.type='button';
+  testButton.className='lux-wall-test-place';
+  testButton.textContent='PLACE TEST SAMPLE';
+  testButton.setAttribute('aria-label','Place approximate test sample without detected wall');
+  controls.append(manualHint,testButton);
+  overlay.append(svg,instructions,controls);
   overlay.hidden=true;
   stage.appendChild(overlay);
   const debugMode=new URLSearchParams(window.location.search).get('arDebug')==='1';
@@ -67,6 +93,27 @@ window.createLuxWallGuide=function(THREE){
     imageAttempts:0,imageError:null
   };
   let trackedNormal=false;
+  let onTestPlace=null;
+  testButton.addEventListener('pointerup',e=>{e.stopPropagation();});
+  testButton.addEventListener('click',e=>{
+    e.preventDefault();e.stopPropagation();
+    if(!enabled||!onTestPlace)return;
+    const camera=window.luxActiveCamera && window.luxActiveCamera();
+    if(!camera)return;
+    camera.updateMatrixWorld(true);
+    camera.getWorldPosition(camPos);
+    camera.getWorldDirection(dir).normalize();
+    const position=camPos.clone().addScaledVector(dir,1.5);
+    const normal=new THREE.Vector3(-dir.x,0,-dir.z);
+    if(normal.lengthSq()<.00001)normal.set(0,0,1);
+    normal.normalize();
+    const pose={
+      position,rotation:new THREE.Euler(0,Math.atan2(normal.x,normal.z),0),
+      confidence:0,detected:false,source:'approximate-test'
+    };
+    onTestPlace(pose);
+  });
+  function setTestPlacement(handler){onTestPlace=typeof handler==='function'?handler:null;}
 
   const clamp=(x,min,max)=>Math.max(min,Math.min(max,x));
   const angleDifference=(a,b)=>Math.abs(Math.atan2(Math.sin(a-b),Math.cos(a-b)));
@@ -81,6 +128,7 @@ window.createLuxWallGuide=function(THREE){
     if(diagnostics)diagnostics.hidden=!enabled;
     group.visible=enabled;
     line.setAttribute('d','');
+    referenceGrid.style.opacity=enabled?'1':'0';
     if(enabled){
       stable=0;locked=null;confirmedLock=null;lastDecisionAt=0;
       manualStart=null;manualPose=null;manualStep=0;
@@ -282,6 +330,7 @@ window.createLuxWallGuide=function(THREE){
     // After sufficient evidence, preserve the world anchor while looking away
     // from the seam. DO NOT recalculate wall pose from a camera-facing fallback.
     const ready=!!(confirmedLock&&trackedNormal);
+    referenceGrid.classList.toggle('is-estimated',ready);
     locked=confirmedLock||manualPose;
     if(locked){
       group.position.copy(locked.position);
@@ -378,6 +427,6 @@ window.createLuxWallGuide=function(THREE){
     confirmed:!!confirmedLock,
     manualStep
   };}
-  return{group,setActive,update,attachVideo,getPose,isReady,tap,getDebug};
+  return{group,setActive,update,attachVideo,getPose,isReady,tap,getDebug,setTestPlacement};
 };
 })();
