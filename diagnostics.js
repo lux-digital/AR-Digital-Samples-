@@ -142,10 +142,13 @@ $('lux-diag-close').addEventListener('click',()=>{modal.hidden=true;});
 modal.addEventListener('click',e=>{if(e.target===modal)modal.hidden=true;});
 $('lux-diag-save').addEventListener('click',()=>{
   note('report-exported',{mechanism:'share-or-download'});
-  const text=encode(),name=filename(),file=new File([text],name,{type:'application/json'});
+  const text=encode(),name=filename();
   // Must call navigator.share synchronously inside the user tap for iOS.
+  // File may not exist on older browsers; fall back to a Blob download.
   try{
-    if(typeof navigator.share==='function' && typeof navigator.canShare==='function' &&
+    const file=typeof File==='function'
+      ? new File([text],name,{type:'application/json'}) : null;
+    if(file && typeof navigator.share==='function' && typeof navigator.canShare==='function' &&
        navigator.canShare({files:[file]})){
       feedback.textContent='Choose Save to Files or share this report.';
       navigator.share({files:[file],title:'LUX AR tracking report'})
