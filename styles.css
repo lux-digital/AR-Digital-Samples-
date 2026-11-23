@@ -218,3 +218,16 @@ body.ar-active.placing .topbar .top-tag{
     padding:10px 12px;
   }
 }
+
+/* Optional on-device diagnostics: add ?arDebug=1 to the URL. */
+.lux-wall-debug{
+  position:absolute;z-index:37;
+  left:12px;top:calc(95px + env(safe-area-inset-top));
+  max-width:240px;
+  padding:10px 12px;
+  font:10px/1.45 ui-monospace,SFMono-Regular,Consolas,monospace;
+  white-space:pre-line;color:#bfffd4;
+  background:rgba(0,0,0,.76);border-radius:9px;
+  pointer-events:none;
+}
+.lux-wall-debug[hidden]{display:none!important}
