@@ -19,7 +19,7 @@ const safe=(v,depth=0)=>{
   if(typeof v==='object'){
     const o={};
     for(const key of Object.keys(v).slice(0,25)){
-      if(/stream|frame|image|texture|canvas|video|glctx|location|coords|deviceid|token/i.test(key)&&!/(videoReady|videoWidth|videoHeight|cameraFrames|imageReadable|seamFrames|cameraStatus)/i.test(key))continue;
+      if(/stream|frame|image|texture|canvas|video|glctx|location|coords|deviceid|token/i.test(key)&&!/(videoReady|videoPresent|videoWidth|videoHeight|cameraFrames|imageAttempts|imageReadable|imageError|seamFrames|cameraStatus|pixelSource|pixelWidth|pixelHeight|pixelUnavailable|pixelError)/i.test(key))continue;
       const item=v[key];
       if(typeof item==='function')continue;
       o[key]=safe(item,depth+1);
