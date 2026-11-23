@@ -443,45 +443,44 @@
     document.body.classList.add('placing');
     $('reposition').hidden=true;
     $('customize').hidden=true;
-    tell('Align the white grid with the wall, then tap anywhere to place');
+    tell('Scan the floor–wall seam or use two taps to align manually.');
   }
-  function placeOnWall() {
-    if (!arRunning||arPlaced) return;
-    activeCamera.updateMatrixWorld(true);
-    // Use an estimated metric wall plane if the SLAM feature points support it.
-    // Otherwise the white grid is an approximate guide ~1.45m in front;
-    // this is NOT automatic native vertical-wall detection.
-    const pose=wallGuide && wallGuide.getPose();
-    if (pose) {
-      placement.position.copy(pose.position);
-      placement.rotation.copy(pose.rotation);
-    } else {
-      const pos=activeCamera.getWorldPosition(new T.Vector3());
-      const forward=activeCamera.getWorldDirection(new T.Vector3()).normalize();
-      placement.position.copy(pos).addScaledVector(forward,1.45);
-      const towardCamera=new T.Vector3(-forward.x,0,-forward.z).normalize();
-      if (towardCamera.lengthSq()<.001) towardCamera.set(0,0,1);
-      placement.rotation.set(0,Math.atan2(towardCamera.x,towardCamera.z),0);
-    }
-    // Keep actual sample dimensions in metres. Absolute scale in XR8 must
-    // calibrate from tracking; no user distance slider and no fake resize.
-    firstARPlacement=false;
-    if (wallGuide) wallGuide.setActive(false);
+  function placeOnWall(pose) {
+    if (!arRunning||arPlaced||!pose) return;
+    // Copy ONCE in world coordinates. No frame-by-frame position correction
+    // from the seam detector after placement. Tracking is owned by XR8.
+    placement.position.copy(pose.position);
+    placement.rotation.copy(pose.rotation);
     placement.visible=true;
     placement.updateMatrixWorld(true);
+    firstARPlacement=false;
     arPlaced=true;
+    if(wallGuide)wallGuide.setActive(false);
     stage.classList.remove('placing');
     document.body.classList.remove('placing');
     $('reposition').hidden=false;
     $('customize').hidden=false;
-    tell(pose && pose.detected
-      ? 'Sample placed on estimated wall plane. Check alignment as you move.'
-      : 'Sample placed using approximate wall alignment. Check the fit.',3500);
+    tell(pose.detected
+      ? 'Wall estimated using multiple tracking signals. Walk around to check stability.'
+      : 'Manual wall alignment placed. Inspect from several angles.',3400);
   }
   stage.addEventListener('pointerup',event=>{
-    if (arRunning && !arPlaced && stage.classList.contains('placing')) {
-      if (event.target.closest('button,a,input')) return;
-      placeOnWall();
+    if (!arRunning||arPlaced||!stage.classList.contains('placing')) return;
+    if(event.target.closest('button,a,input'))return;
+    const rect=stage.getBoundingClientRect();
+    const x=(event.clientX-rect.left)/rect.width;
+    const y=(event.clientY-rect.top)/rect.height;
+    const result=wallGuide?wallGuide.tap(activeCamera,x,y):null;
+    if(result&&result.action==='place') {
+      placeOnWall(result.pose);
+    }else if(result&&result.action==='aim-down'){
+      tell('Aim lower at the floor next to the wall to set its base.',2800);
+    }else if(result&&result.action==='first'){
+      tell('First end marked. Tap the other end of the same floor–wall edge.',2200);
+    }else if(result&&result.action==='wait'){
+      tell('Move your phone slowly until tracking initializes.',2300);
+    }else if(result&&result.action==='retry'){
+      tell('Try selecting two points farther apart on the floor edge.',2800);
     }
   });
   $('reposition').onclick=startPlacing;
@@ -525,6 +524,7 @@
       fullWindow.pipelineModule(),
       {
         name:'lux-scene',
+        onAttach:({video})=>{if(wallGuide)wallGuide.attachVideo(video);},
         onStart:()=>{
           const xr=XR8.Threejs.xrScene();
           activeScene=xr.scene;
@@ -546,8 +546,11 @@
         },
         onUpdate:({processCpuResult}={})=>{
           if(!arRunning) return;
+          const reality=processCpuResult&&processCpuResult.reality;
+          if(reality&&reality.trackingStatus){
+            trackingNormal=reality.trackingStatus==='NORMAL';
+          }
           if (wallGuide && !arPlaced) {
-            const reality=processCpuResult&&processCpuResult.reality;
             wallGuide.update(activeCamera,reality&&reality.worldPoints,trackingNormal);
           }
           updateHandles();
