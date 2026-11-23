@@ -10,11 +10,14 @@
   <link rel="apple-touch-icon" href="./icon.png?v=1">
   <link rel="icon" type="image/png" href="./icon.png?v=1">
   <link rel="stylesheet" href="./styles.css?v=8">
-  <link rel="stylesheet" href="./splash.css?v=4">
+  <link rel="stylesheet" href="./splash.css?v=5">
 </head>
 <body class="splash-visible">
   <div class="lux-splash" id="lux-splash" role="region" aria-label="West Coast Naturals AR introduction">
     <img class="lux-splash__image" src="./Heartwood.jpg" alt="" fetchpriority="high" draggable="false">
+    <div class="lux-splash__grid-reveal" aria-hidden="true">
+      <img class="lux-splash__image" src="./Heartwood-Grid.jpg" alt="" draggable="false">
+    </div>
     <div class="lux-splash__reveal" aria-hidden="true"></div>
     <div class="lux-splash__shade" aria-hidden="true"></div>
     <button class="lux-splash__start" id="splash-start" type="button" aria-label="Start augmented reality">
@@ -87,7 +90,7 @@
   <script src="./wall-guide.js?v=5" defer></script>
   <script src="./diagnostics.js?v=3" defer></script>
   <script src="./app.js?v=9" defer></script>
-  <script src="./splash.js?v=3" defer></script>
+  <script src="./splash.js?v=4" defer></script>
   <!-- Copyright (c) Niantic Spatial, Inc. 8th Wall Engine Binary used under its license.
        https://github.com/8thwall/engine/blob/main/LICENSE -->
 </body>
