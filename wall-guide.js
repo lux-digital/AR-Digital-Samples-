@@ -27,6 +27,14 @@ window.createLuxWallGuide=function(THREE){
   overlay.append(svg,instructions);
   overlay.hidden=true;
   stage.appendChild(overlay);
+  const debugMode=new URLSearchParams(window.location.search).get('arDebug')==='1';
+  const diagnostics=debugMode?document.createElement('div'):null;
+  if(diagnostics){
+    diagnostics.className='lux-wall-debug';
+    diagnostics.textContent='LUX AR / initializing';
+    stage.appendChild(diagnostics);
+  }
+  let lastDebugAt=0;
 
   const group=new THREE.Group();
   const vertices=[];
@@ -67,6 +75,7 @@ window.createLuxWallGuide=function(THREE){
   function setActive(active){
     enabled=!!active;
     overlay.hidden=!enabled;
+    if(diagnostics)diagnostics.hidden=!enabled;
     group.visible=enabled;
     line.setAttribute('d','');
     if(enabled){
@@ -288,6 +297,19 @@ window.createLuxWallGuide=function(THREE){
       line.setAttribute('stroke',ready?'#83edb1':'#ffffff');
       line.setAttribute('stroke-dasharray',ready?'none':'9 7');
     }else line.setAttribute('d','');
+    if(diagnostics && now-lastDebugAt>650){
+      lastDebugAt=now;
+      diagnostics.textContent=[
+        'LUX AR • experimental wall tracker',
+        'XR: '+(trackedNormal?'NORMAL':'LIMITED'),
+        'Video: '+(imageReady?'readable':(video?'waiting':'unavailable')),
+        'Seam candidates: '+debug.seamFrames,
+        'SLAM wall points: '+debug.worldPoints,
+        'Stable checks: '+stable+'/5',
+        'Pose: '+(locked?locked.source:'none'),
+        'Ready: '+(ready?'yes':'no')
+      ].join('\n');
+    }
     if(manualStep===1)setText('Tap the other end of the floor–wall edge');
     else if(ready)setText('Wall alignment ready — tap to place');
     else if(!trackedNormal)setText('Move slowly to initialize tracking');
