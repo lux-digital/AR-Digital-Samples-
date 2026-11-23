@@ -350,7 +350,7 @@ window.createLuxWallGuide=function(THREE){
   }
   function getDebug(){return{
     ...debug,
-    trackingNormal,
+    trackingNormal:trackedNormal,
     source:locked&&locked.source,
     stable,ready:isReady(),
     videoPresent:!!video,
