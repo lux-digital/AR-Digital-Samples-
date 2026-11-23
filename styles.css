@@ -176,3 +176,45 @@ body.ar-active.placing .topbar .top-tag{
   body.ar-active .brand-image{width:clamp(122px,34vw,155px)}
   body.ar-active .topbar .top-tag{font-size:9px;letter-spacing:1.2px}
 }
+
+/* Experimental multi-signal wall finder. The white dashed line indicates an
+   *unverified visual candidate*. Green only means the multiple estimates
+   agreed consistently, NOT native iOS/Android wall-plane detection. */
+.lux-wall-guide{
+  position:absolute;inset:0;
+  z-index:35;
+  pointer-events:none;
+  display:block;
+}
+.lux-wall-guide[hidden]{display:none!important}
+.lux-seam-svg{
+  position:absolute;inset:0;
+  width:100%;height:100%;
+  overflow:visible;
+  pointer-events:none;
+  filter:drop-shadow(0 0 4px #000a);
+}
+.lux-wall-instructions{
+  position:absolute;
+  left:50%;
+  bottom:calc(max(22px,env(safe-area-inset-bottom)) + 26px);
+  transform:translateX(-50%);
+  width:max-content;max-width:min(86%,390px);
+  padding:12px 18px;
+  font:600 12px/1.5 'DM Sans',Arial,sans-serif;
+  letter-spacing:.2px;
+  text-align:center;
+  color:#fff;background:rgba(18,18,18,.66);
+  border:1px solid rgba(255,255,255,.25);
+  border-radius:13px;
+  -webkit-backdrop-filter:blur(10px);
+  backdrop-filter:blur(10px);
+  text-shadow:0 1px 2px #0005;
+}
+@media(max-width:550px){
+  .lux-wall-instructions{
+    font-size:11px;
+    bottom:calc(max(18px,env(safe-area-inset-bottom)) + 21px);
+    padding:10px 12px;
+  }
+}
