@@ -12,7 +12,7 @@
   const entries=[
     {element:document.getElementById('splash-x'),       delay:0,   duration:1130,dy:110,scale:.76},
     {element:document.getElementById('splash-west'),    delay:90,  duration:1240,dy:130,scale:.79},
-    {element:start,                                     delay:190, duration:1270,dy:100,scale:.72},
+    {element:start,                                     delay:190, duration:1270,dy:100,scale:.72,noFade:true},
     {element:document.getElementById('splash-label'),   delay:420, duration:970, opacityOnly:true},
     {element:document.getElementById('splash-triangle'),delay:295, duration:1020, opacityOnly:true}
   ];
@@ -21,11 +21,14 @@
     const move=!e.opacityOnly;
     // The image and button elements are centered with translateX(-50%).
     // Keep that centering in BOTH keyframes to avoid a start/end jump.
+    // The blur circle stays fully visible; only its position/scale animates.
     const from=move?
-      {opacity:0,transform:'translate3d(-50%, '+e.dy+'px, 0) scale('+e.scale+')'}:
+      (e.noFade ? {transform:'translate3d(-50%, '+e.dy+'px, 0) scale('+e.scale+')'} :
+        {opacity:0,transform:'translate3d(-50%, '+e.dy+'px, 0) scale('+e.scale+')'}) :
       {opacity:0};
     const to=move?
-      {opacity:1,transform:'translate3d(-50%, 0px, 0) scale(1)'}:
+      (e.noFade ? {transform:'translate3d(-50%, 0px, 0) scale(1)'} :
+        {opacity:1,transform:'translate3d(-50%, 0px, 0) scale(1)'}) :
       {opacity:1};
     return e.element.animate([from,to],{
       duration:reduce?1:e.duration,
@@ -37,6 +40,14 @@
 
   // Do not allow the transition to fire a second camera session.
   let exiting=false;
+  // Only begin the repeating halo after every entrance motion has settled.
+  if (animated.length) {
+    Promise.allSettled(animated.map(animation=>animation.finished)).then(()=>{
+      if(!exiting) splash.classList.add('is-ready');
+    });
+  } else {
+    splash.classList.add('is-ready');
+  }
   function hideSplash(){
     if (splash.hidden) return;
     splash.hidden=true;
@@ -48,6 +59,7 @@
     if(exiting) return;
     exiting=true;
     start.disabled=true;
+    splash.classList.remove('is-ready');
     splash.classList.add('is-exiting');
 
     // Reverse every item's entrance curve. The entire button, including the
