@@ -460,9 +460,11 @@
     document.body.classList.remove('placing');
     $('reposition').hidden=false;
     $('customize').hidden=false;
-    tell(pose.detected
-      ? 'Wall estimated using multiple tracking signals. Walk around to check stability.'
-      : 'Manual wall alignment placed. Inspect from several angles.',3400);
+    tell(pose.source==='confirmed'
+      ? 'Seam and 3D wall cues agreed. Check the sample from several angles.'
+      : (pose.detected
+          ? 'Estimated wall placed. Verify alignment and physical size.'
+          : 'Manual wall alignment placed. Inspect from several angles.'),3400);
   }
   stage.addEventListener('pointerup',event=>{
     if (!arRunning||arPlaced||!stage.classList.contains('placing')) return;
