@@ -21,22 +21,30 @@ This is a static website. No npm installation, backend or Adobe Aero account is 
 3. Select main and /(root), then Save.
 4. Once GitHub reports deployment, follow the exact URL shown on that settings page.
 5. Desktop: drag the 3D view to orbit, drag handles to resize, and choose profiles and finishes.
-6. iPhone/Android: use the HTTPS Pages URL in Safari/Chrome. Tap START AR, grant camera access, face a wall, move slowly to initialize tracking, then tap anywhere on the live camera to place the sample. Use REPOSITION after placing if needed. There is no distance slider.
+6. iPhone/Android: use the HTTPS Pages URL in Safari/Chrome. Tap START AR, grant camera access, face a wall and scan along the floor–wall junction. Wait for a stable estimate, then tap once. If it never becomes ready, tap two points on the physical floor–wall edge to align manually. Use REPOSITION after placing if needed. There is no distance slider.
 
 **Status:** The interface, rendering logic and AR integration are committed, and app.js passes a JavaScript syntax check. These have NOT been visually tested or validated on a real AR device yet. This is a development prototype, not production-ready wall recognition or accurately verified tracking.
 
 ## AR placement limitation
 
-8th Wall's native SLAM recognizes a single dynamically estimated **ground plane**, not multiple detected wall surfaces. Our additional `wall-guide.js` **experimentally estimates** vertical planes from world feature points when enough reliable points exist. The grid therefore may follow a plausible estimated wall, or fall back to a camera-aligned white reference grid about 1.45 m ahead. **A white grid is not proof of a detected wall**. Tap the camera to anchor the sample at the estimated/fallback position.
+8th Wall's native SLAM estimates **one horizontal ground plane**, not native vertical wall planes. The experimental `wall-guide.js` v2 combines three sources:
 
-World tracking uses `scale: 'absolute'` (real-world metre coordinates), so the user no longer needs a distance slider. However, absolute scale still requires tracking to initialize and may drift or fail in low-texture or repetitive environments. The fallback distance is approximate and does not measure the real wall distance. Validate alignment and physical size on actual devices before claiming automatic wall measurement.
+1. **Camera image:** low-resolution horizontal-contrast analysis searches for a floor–wall seam, sampled around three times per second. A *white dashed line* is only a visual candidate, not verified wall recognition.
+2. **SLAM feature points:** custom RANSAC fits approximately vertical feature-point clusters. When possible, it cross-checks their orientation/location against the image seam.
+3. **Real-world floor estimate:** camera rays intersect the tracked horizontal Y=0 ground plane to locate the seam and calculate a candidate wall orientation in metre-scale coordinates.
+
+The estimator requires sustained temporal consistency. When a candidate becomes stable, its world-space position stays fixed **even after the phone is pointed away from the seam**. A green grid indicates a stable *estimate*, not native wall recognition.
+
+**Manual fallback:** If a wall cannot be confirmed automatically, aim at the floor–wall edge and tap two separated points along the same junction (left end, then right end). This defines a vertical plane using the tracked ground plane. No arbitrary 1.45-metre placement is accepted just because the user taps. The app copies the wall pose *once* on placement. Later seam detections **never move the placed panel**. After placement, tracking stability still depends on 8th Wall SLAM and the environment.
+
+World tracking uses `scale: 'absolute'` (real-world metre coordinates), so the user does not need a distance slider. This does **not** guarantee accurate scale until ground tracking has calibrated. Repetitive woodgrain surfaces and plain featureless walls remain challenging. Validate alignment, size and drift on real devices before treating these experiments as reliable automatic wall detection.
 
 ## Implementation
 
 - index.html — application structure, scripts and controls
 - styles.css — responsive styling
 - app.js — loading, caching, cropping shader, trim meshes, resize handles, preview and XR8 pipeline
-- wall-guide.js — experimental feature-point vertical-plane fitting and white grid overlay
+- wall-guide.js — experimental camera seam detection, floor-plane raycasts, feature-point fitting and fixed-pose grid overlay
 - Profiles / Textures / ICONS — the existing source assets
 
 Three.js and GLTFLoader use pinned version 0.146.0 (classic global build for compatibility with XR8's Three.js pipeline). XR8 is loaded from the official @8thwall/engine-binary@1 package. World tracking is in the distributed proprietary binary, not the MIT-only framework.
