@@ -80,6 +80,9 @@
                     new T.MeshStandardMaterial({color:0x302f2b,roughness:.74,metalness:.15})];
   placement.add(surfaceRoot, trimRoot);
   stageScene.add(placement, sceneLights);
+  const wallGuide=typeof window.createLuxWallGuide==='function'
+    ? window.createLuxWallGuide(T) : null;
+  if (wallGuide) stageScene.add(wallGuide.group);
   sceneLights.add(new T.HemisphereLight(0xffffff,0x6c6a64,1.75));
   const keyLight = new T.DirectionalLight(0xffffff,2.1);
   keyLight.position.set(-3,4,7);
@@ -105,7 +108,7 @@
     if (toastUntil && performance.now()<toastUntil) return;
     toastUntil=0;
     let message = arRunning ?
-      (arPlaced ? (trackingNormal ? 'Drag any edge to resize • walk around to inspect' : 'Move your phone slowly to improve tracking') : 'Point at a wall • set distance • tap PLACE ON WALL') :
+      (arPlaced ? (trackingNormal ? 'Drag any edge to resize • walk around to inspect' : 'Move your phone slowly to improve tracking') : 'Align the white grid to your wall, then tap the screen') :
       'Drag the view to rotate • drag any circular edge handle to resize';
     if (lastToast!==message) {lastToast=message;status.textContent=message;}
   }
@@ -403,9 +406,6 @@
   }
   $('reset').onclick=resetSize;
   $('help').onclick=()=>$('help-dialog').showModal();
-  $('distance').addEventListener('input',()=>{
-    $('distance-value').textContent=Number($('distance').value).toFixed(1)+' m';
-  });
   function closeArPanel() {
     document.querySelector('.config-panel').classList.remove('panel-open');
     document.body.classList.remove('ar-panel-open');
@@ -438,43 +438,60 @@
     closeArPanel();
     arPlaced=false;
     placement.visible=false;
+    if (wallGuide) wallGuide.setActive(true);
     stage.classList.add('placing');
     document.body.classList.add('placing');
-    $('placement-panel').hidden=false;
     $('reposition').hidden=true;
     $('customize').hidden=true;
-    tell('Aim the crosshair at the wall where you want the sample');
+    tell('Align the white grid with the wall, then tap anywhere to place');
   }
   function placeOnWall() {
-    if (!arRunning) return;
+    if (!arRunning||arPlaced) return;
     activeCamera.updateMatrixWorld(true);
-    const pos=activeCamera.getWorldPosition(new T.Vector3());
-    const forward=activeCamera.getWorldDirection(new T.Vector3()).normalize();
-    const distance=Number($('distance').value);
-    if (firstARPlacement && !sampleManuallyResized) fitARSampleToScreen(distance);
+    // Use an estimated metric wall plane if the SLAM feature points support it.
+    // Otherwise the white grid is an approximate guide ~1.45m in front;
+    // this is NOT automatic native vertical-wall detection.
+    const pose=wallGuide && wallGuide.getPose();
+    if (pose) {
+      placement.position.copy(pose.position);
+      placement.rotation.copy(pose.rotation);
+    } else {
+      const pos=activeCamera.getWorldPosition(new T.Vector3());
+      const forward=activeCamera.getWorldDirection(new T.Vector3()).normalize();
+      placement.position.copy(pos).addScaledVector(forward,1.45);
+      const towardCamera=new T.Vector3(-forward.x,0,-forward.z).normalize();
+      if (towardCamera.lengthSq()<.001) towardCamera.set(0,0,1);
+      placement.rotation.set(0,Math.atan2(towardCamera.x,towardCamera.z),0);
+    }
+    // Keep actual sample dimensions in metres. Absolute scale in XR8 must
+    // calibrate from tracking; no user distance slider and no fake resize.
     firstARPlacement=false;
-    placement.position.copy(pos).addScaledVector(forward,distance);
-    const towardCamera=new T.Vector3(-forward.x,0,-forward.z).normalize();
-    if (towardCamera.lengthSq()<.001) towardCamera.set(0,0,1);
-    placement.rotation.set(0,Math.atan2(towardCamera.x,towardCamera.z),0);
+    if (wallGuide) wallGuide.setActive(false);
     placement.visible=true;
     placement.updateMatrixWorld(true);
     arPlaced=true;
     stage.classList.remove('placing');
     document.body.classList.remove('placing');
-    $('placement-panel').hidden=true;
     $('reposition').hidden=false;
     $('customize').hidden=false;
-    tell('Sample anchored. Move slowly and check its alignment.',3200);
+    tell(pose && pose.detected
+      ? 'Sample placed on estimated wall plane. Check alignment as you move.'
+      : 'Sample placed using approximate wall alignment. Check the fit.',3500);
   }
-  $('place').onclick=placeOnWall;
+  stage.addEventListener('pointerup',event=>{
+    if (arRunning && !arPlaced && stage.classList.contains('placing')) {
+      if (event.target.closest('button,a,input')) return;
+      placeOnWall();
+    }
+  });
   $('reposition').onclick=startPlacing;
 
   function setMode(ar) {
     closeArPanel();
     stage.classList.toggle('ar-mode',ar);
     document.body.classList.toggle('ar-active',ar);
-    if (!ar) document.body.classList.remove('placing');
+    stage.classList.toggle('placing',ar);
+    document.body.classList.toggle('placing',ar);
     $('mode-label').textContent=ar?'LIVE AR':'3D PREVIEW';
     $('start-ar').hidden=ar;
     $('return-preview').hidden=!ar;
@@ -495,7 +512,10 @@
     if (!fullWindow || !fullWindow.pipelineModule) {
       throw new Error('Full-screen camera helper unavailable. Please refresh.');
     }
-    XR8.XrController.configure({disableWorldTracking:false,scale:'absolute',enableLighting:false});
+    XR8.XrController.configure({
+      disableWorldTracking:false,scale:'absolute',
+      enableLighting:false,enableWorldPoints:true
+    });
     XR8.addCameraPipelineModules([
       XR8.GlTextureRenderer.pipelineModule(),
       XR8.Threejs.pipelineModule(),
@@ -514,6 +534,7 @@
           xr.renderer.toneMapping=T.ACESFilmicToneMapping;
           xr.renderer.toneMappingExposure=1.3;
           activeScene.add(placement,sceneLights);
+          if (wallGuide) activeScene.add(wallGuide.group);
           // 8th Wall's official three.js sample synchronizes the initial
           // world-tracking origin to the same XR scene camera.
           XR8.XrController.updateCameraProjectionMatrix({
@@ -523,7 +544,15 @@
           startPlacing();
           tell('Move phone slowly to let tracking initialize',2200);
         },
-        onUpdate:()=>{if(arRunning) {updateHandles();restoreStatus();}},
+        onUpdate:({processCpuResult}={})=>{
+          if(!arRunning) return;
+          if (wallGuide && !arPlaced) {
+            const reality=processCpuResult&&processCpuResult.reality;
+            wallGuide.update(activeCamera,reality&&reality.worldPoints,trackingNormal);
+          }
+          updateHandles();
+          restoreStatus();
+        },
         listeners:[
           {event:'reality.trackingstatus',process:(e)=>{
             trackingNormal=e.detail && e.detail.status==='NORMAL';
@@ -587,7 +616,10 @@
     stageScene.add(placement,sceneLights);
     stage.classList.remove('placing');
     document.body.classList.remove('placing');
-    $('placement-panel').hidden=true;
+    if (wallGuide) {
+      wallGuide.setActive(false);
+      stageScene.add(wallGuide.group);
+    }
     setMode(false);
     if (!previewRenderer) createPreviewRenderer();
     tell('Back in the 3D preview',2500);
