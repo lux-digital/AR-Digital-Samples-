@@ -25,6 +25,7 @@ window.createLuxWallGuide=function(THREE){
   instructions.className='lux-wall-instructions';
   instructions.textContent='Slowly scan the bottom edge of a wall';
   overlay.append(svg,instructions);
+  overlay.hidden=true;
   stage.appendChild(overlay);
 
   const group=new THREE.Group();
@@ -51,7 +52,7 @@ window.createLuxWallGuide=function(THREE){
   const camPos=new THREE.Vector3(),dir=new THREE.Vector3();
   let video=null,enabled=false,lastImageAt=0,lastPointsAt=0;
   let imageLine=null,pointsPlane=null,pointsAt=0;
-  let candidate=null,stable=0,locked=null;
+  let candidate=null,stable=0,locked=null,confirmedLock=null,lastDecisionAt=0;
   let manualStart=null,manualPose=null,manualStep=0;
   let lastUi='',imageReady=false,debug={cameraFrames:0,seamFrames:0,worldPoints:0};
   let trackedNormal=false;
@@ -69,7 +70,8 @@ window.createLuxWallGuide=function(THREE){
     group.visible=enabled;
     line.setAttribute('d','');
     if(enabled){
-      stable=0;locked=null;manualStart=null;manualPose=null;manualStep=0;
+      stable=0;locked=null;confirmedLock=null;lastDecisionAt=0;
+      manualStart=null;manualPose=null;manualStep=0;
       imageLine=null;pointsPlane=null;pointsAt=0;
       setText('Scan slowly along the floor–wall junction');
     }
@@ -234,24 +236,36 @@ window.createLuxWallGuide=function(THREE){
     const seam=trackedNormal?imageCandidate(camera):null;
     const wall=trackedNormal&&now-pointsAt<1200?pointsPlane:null;
     const next=trackedNormal?reconcile(seam,wall):null;
-    // Every candidate must be both confident and temporally consistent.
-    if(next&&next.confidence>=.70){
-      if(candidate && candidate.position.distanceTo(next.position)<.28
-         &&angleDifference(candidate.yaw,next.yaw)<.24){
-        candidate.position.lerp(next.position,.30);
-        candidate.yaw+=Math.atan2(Math.sin(next.yaw-candidate.yaw),
-                                   Math.cos(next.yaw-candidate.yaw))*.30;
-        candidate.confidence=next.confidence;candidate.source=next.source;
-        stable=Math.min(stable+1,20);
-      }else {candidate=next;stable=1;}
-    } else if(now-lastImageAt<900){stable=Math.max(0,stable-1);}
-    const ready=!!(candidate&&stable>=5&&trackedNormal);
-    locked=ready?{
-      position:candidate.position.clone(),
-      rotation:new THREE.Euler(0,candidate.yaw,0),
-      confidence:candidate.confidence,
-      detected:true,source:candidate.source
-    }:manualPose;
+    // Require sustained agreement across separate video/tracking measurements,
+    // not merely five fast render frames (which would accept false positives).
+    if(now-lastDecisionAt>=340 && !confirmedLock){
+      lastDecisionAt=now;
+      if(next&&next.confidence>=.70){
+        if(candidate && candidate.position.distanceTo(next.position)<.28
+           &&angleDifference(candidate.yaw,next.yaw)<.24){
+          candidate.position.lerp(next.position,.30);
+          candidate.yaw+=Math.atan2(Math.sin(next.yaw-candidate.yaw),
+                                     Math.cos(next.yaw-candidate.yaw))*.30;
+          candidate.confidence=next.confidence;
+          candidate.source=next.source;
+          stable=Math.min(stable+1,20);
+        }else {candidate=next;stable=1;}
+      } else {
+        stable=Math.max(0,stable-1);
+      }
+      if(candidate && stable>=5){
+        confirmedLock={
+          position:candidate.position.clone(),
+          rotation:new THREE.Euler(0,candidate.yaw,0),
+          confidence:candidate.confidence,detected:true,
+          source:candidate.source
+        };
+      }
+    }
+    // After sufficient evidence, preserve the world anchor while looking away
+    // from the seam. DO NOT recalculate wall pose from a camera-facing fallback.
+    const ready=!!(confirmedLock&&trackedNormal);
+    locked=confirmedLock||manualPose;
     if(locked){
       group.position.copy(locked.position);
       group.rotation.copy(locked.rotation);
@@ -289,7 +303,7 @@ window.createLuxWallGuide=function(THREE){
       source:locked.source
     };
   }
-  function isReady(){return !!(locked&&locked.detected&&stable>=5&&trackedNormal);}
+  function isReady(){return !!(confirmedLock&&trackedNormal);}
   function tap(camera,x,y){
     if(!enabled)return{action:'inactive'};
     if(isReady())return{action:'place',pose:getPose()};
