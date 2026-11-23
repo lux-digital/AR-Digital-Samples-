@@ -9,6 +9,24 @@
 
   const reduce=window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const ease='cubic-bezier(0.16, 1, 0.3, 1)';
+
+  // Both 2400x1600 JPGs use the identical 15s CSS pan. Synchronize the
+  // animation clocks so the wireframe stays registered to the underlying
+  // Heartwood pixels throughout the mask-wave pulses.
+  const background=splash.querySelector(':scope > .lux-splash__image');
+  const gridImage=splash.querySelector('.lux-splash__grid-reveal > .lux-splash__image');
+  const panOf=element=>element&&typeof element.getAnimations==='function'
+    ? element.getAnimations().find(anim=>anim.animationName==='lux-splash-pan')
+    : null;
+  const backgroundPan=panOf(background);
+  const gridPan=panOf(gridImage);
+  if(backgroundPan&&gridPan&&backgroundPan.currentTime!==null){
+    try{gridPan.currentTime=backgroundPan.currentTime;}catch(error){
+      // If Safari disallows timeline seeking, both elements already share
+      // the same CSS animation and start from the same computed frame.
+    }
+  }
+
   const entries=[
     {element:document.getElementById('splash-x'),       delay:0,   duration:1590,dy:110,scale:.76},
     {element:document.getElementById('splash-west'),    delay:120, duration:1730,dy:130,scale:.79},
