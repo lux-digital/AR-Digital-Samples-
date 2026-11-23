@@ -24,6 +24,64 @@ body.splash-visible{overflow:hidden}
   from{transform:translate3d(-12.3%,0,0) scale(1.045)}
   to{transform:translate3d(12.3%,0,0) scale(1.045)}
 }
+
+/* Heartwood-Grid sits over the exact same 2400x1600 Heartwood pixels.
+   Both JPG elements use .lux-splash__image (same object-fit, geometry, pan);
+   only this stationary, screen-space reveal mask travels across the overlay.
+   iOS Safari 16.4+ supports @property interpolation for fluid ring expansion. */
+@property --lux-grid-radius {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+.lux-splash{
+  --lux-grid-origin-y:calc(22.4% + clamp(74px,20vw,126px));
+}
+.lux-splash__grid-reveal{
+  --lux-grid-radius:0px;
+  position:absolute;inset:0;
+  overflow:hidden;
+  pointer-events:none;
+  opacity:0;
+  /* A moving ANNULUS, not a filled circle: the wireframe is invisible on
+     both sides of the expanding ring, preserving the original photo. */
+  -webkit-mask-image:radial-gradient(
+    circle at 50% var(--lux-grid-origin-y),
+    transparent calc(var(--lux-grid-radius) - 122px),
+    rgba(0,0,0,.22) calc(var(--lux-grid-radius) - 76px),
+    #000 calc(var(--lux-grid-radius) - 19px),
+    #000 calc(var(--lux-grid-radius) + 17px),
+    rgba(0,0,0,.36) calc(var(--lux-grid-radius) + 73px),
+    transparent calc(var(--lux-grid-radius) + 133px)
+  );
+  mask-image:radial-gradient(
+    circle at 50% var(--lux-grid-origin-y),
+    transparent calc(var(--lux-grid-radius) - 122px),
+    rgba(0,0,0,.22) calc(var(--lux-grid-radius) - 76px),
+    #000 calc(var(--lux-grid-radius) - 19px),
+    #000 calc(var(--lux-grid-radius) + 17px),
+    rgba(0,0,0,.36) calc(var(--lux-grid-radius) + 73px),
+    transparent calc(var(--lux-grid-radius) + 133px)
+  );
+  -webkit-mask-repeat:no-repeat;
+  mask-repeat:no-repeat;
+}
+.lux-splash.is-ready:not(.is-exiting) .lux-splash__grid-reveal{
+  /* This and the play-circle halo start on the SAME is-ready frame.
+     One 2.7s wave expands beyond every screen corner on each pulse. */
+  animation:lux-grid-wave 2.7s linear infinite;
+}
+@keyframes lux-grid-wave{
+  0% {--lux-grid-radius:0px;opacity:0}
+  6% {opacity:.92}
+  76% {opacity:.92}
+  100% {--lux-grid-radius:145vmax;opacity:0}
+}
+.lux-splash.is-exiting .lux-splash__grid-reveal{
+  animation:none!important;
+  opacity:0!important;
+}
+
 /* Separate fade layer: background fades in without interrupting the linear pan
    or animating the backdrop-filter on the button. */
 .lux-splash__reveal{
@@ -149,6 +207,7 @@ body.splash-visible{overflow:hidden}
   .lux-splash__start:hover .lux-splash__triangle{filter:drop-shadow(0 0 13px rgba(255,255,255,.32))}
 }
 @media(max-height:660px){
+  .lux-splash{--lux-grid-origin-y:calc(17% + clamp(62px,15vh,104px))}
   .lux-splash__start{top:17%;--lux-play-size:clamp(124px,30vh,208px);--lux-label-gap:12px}
   .lux-splash__west{bottom:17%}
   .lux-splash__x{bottom:4.6%;width:clamp(60px,16vw,105px)}
@@ -156,6 +215,7 @@ body.splash-visible{overflow:hidden}
 @media(prefers-reduced-motion:reduce){
   .lux-splash__image{animation:none;transform:scale(1.05)}
   .lux-splash__reveal{animation:none;opacity:0}
+  .lux-splash__grid-reveal{animation:none!important;opacity:0!important}
   .lux-splash.is-ready .lux-splash__circle::after{animation:none}
   .lux-splash.is-exiting .lux-splash__image,.lux-splash.is-exiting .lux-splash__shade{transition-duration:.2s}
 }
