@@ -15,12 +15,25 @@ body.splash-visible{overflow:hidden}
   width:118%;height:100%;display:block;
   object-fit:cover;object-position:center center;
   pointer-events:none;user-select:none;
-  animation:lux-splash-pan 65s linear infinite alternate;
+  /* Exactly one slow rightward sweep. It keeps moving after the UI settles. */
+  animation:lux-splash-pan 15s linear 0s 1 normal forwards;
   will-change:transform;
 }
 @keyframes lux-splash-pan{
-  from{transform:translate3d(-3%,0,0) scale(1.045)}
-  to{transform:translate3d(3%,0,0) scale(1.045)}
+  from{transform:translate3d(-5%,0,0) scale(1.045)}
+  to{transform:translate3d(5%,0,0) scale(1.045)}
+}
+/* Separate fade layer: background fades in without interrupting the linear pan
+   or animating the backdrop-filter on the button. */
+.lux-splash__reveal{
+  position:absolute;inset:0;
+  background:#070504;
+  pointer-events:none;
+  animation:lux-splash-reveal 3.4s cubic-bezier(.35,0,.48,1) both;
+}
+@keyframes lux-splash-reveal{
+  from{opacity:1}
+  to{opacity:0}
 }
 .lux-splash__shade{
   position:absolute;inset:0;
@@ -34,8 +47,8 @@ body.splash-visible{overflow:hidden}
   pointer-events:none;
 }
 .lux-splash__start{
-  --lux-play-size:clamp(166px,46vw,296px);
-  --lux-label-gap:clamp(22px,4vh,40px);
+  --lux-play-size:clamp(148px,40vw,252px);
+  --lux-label-gap:clamp(11px,2.2vh,21px);
   position:absolute;
   left:50%;top:22.4%;
   display:flex;align-items:center;justify-content:center;flex-direction:column;
@@ -50,10 +63,26 @@ body.splash-visible{overflow:hidden}
 .lux-splash__circle{
   position:absolute;inset:0;border-radius:50%;
   display:flex;align-items:center;justify-content:center;
+  /* Keep the frosted background at full opacity throughout the entrance:
+     never animate its opacity/backdrop-filter. */
   background:rgba(18,9,7,.52);
   -webkit-backdrop-filter:blur(14px);
   backdrop-filter:blur(14px);
   box-shadow:0 9px 42px rgba(0,0,0,.17);
+}
+/* The pulse is a faint halo, rather than an opacity change on blurred glass. */
+.lux-splash__circle::after{
+  content:"";position:absolute;inset:-2px;border-radius:inherit;
+  border:1px solid rgba(255,255,255,.27);
+  box-shadow:0 0 18px rgba(255,255,255,.18);
+  pointer-events:none;opacity:0;
+}
+.lux-splash.is-ready:not(.is-exiting) .lux-splash__circle::after{
+  animation:lux-splash-pulse 3s ease-in-out infinite;
+}
+@keyframes lux-splash-pulse{
+  0%,100%{transform:scale(.985);opacity:0}
+  48%{transform:scale(1.075);opacity:.30}
 }
 .lux-splash__triangle{
   width:47%;height:47%;
@@ -104,11 +133,13 @@ body.splash-visible{overflow:hidden}
   .lux-splash__start:hover .lux-splash__triangle{filter:drop-shadow(0 0 13px rgba(255,255,255,.32))}
 }
 @media(max-height:660px){
-  .lux-splash__start{top:17%;--lux-play-size:clamp(130px,34vh,235px);--lux-label-gap:19px}
+  .lux-splash__start{top:17%;--lux-play-size:clamp(124px,30vh,208px);--lux-label-gap:12px}
   .lux-splash__west{bottom:17%}
   .lux-splash__x{bottom:4.6%;width:clamp(60px,16vw,105px)}
 }
 @media(prefers-reduced-motion:reduce){
   .lux-splash__image{animation:none;transform:scale(1.05)}
+  .lux-splash__reveal{animation:none;opacity:0}
+  .lux-splash.is-ready .lux-splash__circle::after{animation:none}
   .lux-splash.is-exiting .lux-splash__image,.lux-splash.is-exiting .lux-splash__shade{transition-duration:.2s}
 }
