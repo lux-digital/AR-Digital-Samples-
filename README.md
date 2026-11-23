@@ -25,6 +25,16 @@ This is a static website. No npm installation, backend or Adobe Aero account is 
 
 **Status:** The interface, rendering logic and AR integration are committed, and app.js passes a JavaScript syntax check. These have NOT been visually tested or validated on a real AR device yet. This is a development prototype, not production-ready wall recognition or accurately verified tracking.
 
+## Test 11: tracking failure fix and visible manual controls
+
+The November 23 diagnostic report recorded **79 JavaScript errors** originating from a typo in `wall-guide.js` line 353: `trackingNormal` was used in `getDebug()` although the declared variable was `trackedNormal`. That bug prevented diagnostic frames from completing. It has been corrected.
+
+The original report also recorded **zero camera frames processed** by the seam finder. The new implementation optionally uses 8th Wall's `CameraPixelArray.pipelineModule({luminance:true,width:112,height:176})` to sample live camera luminance directly. This avoids relying solely on an accessible HTML video element on Safari. If the module is unavailable, the previous video path remains, and the report records which inputs are missing. The new path is unproven on actual phones.
+
+While scanning, users see a **white dashed alignment reference grid** even before any wall detection succeeds. The grid is not evidence that a physical wall was detected. Users may still tap two points along the real floor–wall seam to place manually. The **PLACE TEST SAMPLE** button is an explicit fallback which places a panel approximately 1.5 m in front of the camera for testing stability and geometry. It is **not wall-aligned** and must not be interpreted as an automatic placement result. After placement, the four resize handles and finish controls remain available.
+
+The diagnostics exporter remains available throughout the test.
+
 ## Collecting on-device AR diagnostics (test 10)
 
 The AR view now has a **SAVE DIAGNOSTICS** button near the upper-right, visible while scanning or after placement. It also stays available if the XR startup fails or after returning to preview. Press the button to open the report dialog, then select **SHARE / SAVE JSON REPORT** (iPhone: Save to Files or share directly) or **COPY REPORT TEXT** as a fallback. Send the saved `.json` file back through the ChatGPT conversation.
