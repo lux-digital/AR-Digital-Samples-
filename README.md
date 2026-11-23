@@ -10,7 +10,7 @@ A first-pass 3D viewer + experimental world-tracked WebAR for LUX Architectural 
 - Four independently draggable resize edges and live dimensions in metres.
 - Shader cropping of the original geometry, without stretching texture UVs.
 - Four adjustable J-style trims with approximately 1 inch of visible overlap.
-- Phone AR integration using 8th Wall Distributed Engine Binary (SLAM tracking), manual wall placement, adjustable placement distance, reset/reposition.
+- Phone AR integration using 8th Wall Distributed Engine Binary (SLAM tracking), metric-scale tracking, a white alignment grid, experimental feature-point vertical-plane estimation, and tap-to-place.
 
 ## How to test
 
@@ -21,19 +21,22 @@ This is a static website. No npm installation, backend or Adobe Aero account is 
 3. Select main and /(root), then Save.
 4. Once GitHub reports deployment, follow the exact URL shown on that settings page.
 5. Desktop: drag the 3D view to orbit, drag handles to resize, and choose profiles and finishes.
-6. iPhone/Android: use the HTTPS Pages URL in Safari/Chrome. Tap START AR, grant camera access, stand facing a wall, aim the reticle, set approximate distance, then tap PLACE ON WALL. Use REPOSITION if needed.
+6. iPhone/Android: use the HTTPS Pages URL in Safari/Chrome. Tap START AR, grant camera access, face a wall, move slowly to initialize tracking, then tap anywhere on the live camera to place the sample. Use REPOSITION after placing if needed. There is no distance slider.
 
 **Status:** The interface, rendering logic and AR integration are committed, and app.js passes a JavaScript syntax check. These have NOT been visually tested or validated on a real AR device yet. This is a development prototype, not production-ready wall recognition or accurately verified tracking.
 
 ## AR placement limitation
 
-The first build does not automatically detect a vertical wall. The customer aims the camera at a wall and manually places the sample an estimated distance away. With SLAM operating, the sample should remain at that 3D world position as the device moves. Actual placement, drift, alignment and metre scaling require phone tests.
+8th Wall's native SLAM recognizes a single dynamically estimated **ground plane**, not multiple detected wall surfaces. Our additional `wall-guide.js` **experimentally estimates** vertical planes from world feature points when enough reliable points exist. The grid therefore may follow a plausible estimated wall, or fall back to a camera-aligned white reference grid about 1.45 m ahead. **A white grid is not proof of a detected wall**. Tap the camera to anchor the sample at the estimated/fallback position.
+
+World tracking uses `scale: 'absolute'` (real-world metre coordinates), so the user no longer needs a distance slider. However, absolute scale still requires tracking to initialize and may drift or fail in low-texture or repetitive environments. The fallback distance is approximate and does not measure the real wall distance. Validate alignment and physical size on actual devices before claiming automatic wall measurement.
 
 ## Implementation
 
 - index.html — application structure, scripts and controls
 - styles.css — responsive styling
 - app.js — loading, caching, cropping shader, trim meshes, resize handles, preview and XR8 pipeline
+- wall-guide.js — experimental feature-point vertical-plane fitting and white grid overlay
 - Profiles / Textures / ICONS — the existing source assets
 
 Three.js and GLTFLoader use pinned version 0.146.0 (classic global build for compatibility with XR8's Three.js pipeline). XR8 is loaded from the official @8thwall/engine-binary@1 package. World tracking is in the distributed proprietary binary, not the MIT-only framework.
