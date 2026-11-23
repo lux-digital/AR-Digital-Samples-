@@ -3,14 +3,30 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-  <meta name="theme-color" content="#111111">
+  <meta name="theme-color" content="#090605">
+  <link rel="preload" as="image" href="./Heartwood.jpg">
   <title>LUX | AR Digital Samples</title>
   <meta name="apple-mobile-web-app-title" content="LUX AR Samples">
   <link rel="apple-touch-icon" href="./icon.png?v=1">
   <link rel="icon" type="image/png" href="./icon.png?v=1">
   <link rel="stylesheet" href="./styles.css?v=3">
+  <link rel="stylesheet" href="./splash.css?v=1">
 </head>
-<body>
+<body class="splash-visible">
+  <div class="lux-splash" id="lux-splash" role="region" aria-label="West Coast Naturals AR introduction">
+    <img class="lux-splash__image" src="./Heartwood.jpg" alt="" fetchpriority="high" draggable="false">
+    <div class="lux-splash__shade" aria-hidden="true"></div>
+    <button class="lux-splash__start" id="splash-start" type="button" aria-label="Start augmented reality">
+      <span class="lux-splash__circle" aria-hidden="true">
+        <svg id="splash-triangle" class="lux-splash__triangle" viewBox="0 0 120 120" aria-hidden="true" focusable="false">
+          <path d="M24 11 Q24 2 34 8 L107 51 Q119 59 107 67 L34 111 Q24 117 24 105 Z"></path>
+        </svg>
+      </span>
+      <span class="lux-splash__label" id="splash-label">START AR</span>
+    </button>
+    <img class="lux-splash__west" id="splash-west" src="./West Coast.png" alt="West Coast Natural Series" draggable="false">
+    <img class="lux-splash__x" id="splash-x" src="./x.png" alt="LUX" draggable="false">
+  </div>
   <main id="app">
     <div class="stage" id="stage">
       <canvas id="preview" aria-label="Interactive 3D preview of LUX cladding"></canvas>
@@ -74,7 +90,8 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/loaders/GLTFLoader.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@8thwall/xrextras@1/dist/xrextras.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js" async crossorigin="anonymous" data-preload-chunks="slam"></script>
-  <script src="./app.js?v=3" defer></script>
+  <script src="./app.js?v=4" defer></script>
+  <script src="./splash.js?v=1" defer></script>
   <!-- Copyright (c) Niantic Spatial, Inc. 8th Wall Engine Binary used under its license.
        https://github.com/8thwall/engine/blob/main/LICENSE -->
 </body>
