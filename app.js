@@ -382,7 +382,7 @@
   }
   function previewLoop() {
     requestAnimationFrame(previewLoop);
-    if (arRunning) return;
+    if (arRunning || document.body.classList.contains('splash-visible')) return;
     restoreStatus();
     updateHandles();
     if (previewRenderer) previewRenderer.render(stageScene,previewCamera);
@@ -592,6 +592,9 @@
     if (!previewRenderer) createPreviewRenderer();
     tell('Back in the 3D preview',2500);
   }
+  // Called directly from the branded startup button's trusted click,
+  // preserving iOS camera gesture permissions during the exit animation.
+  window.luxStartAR=startAR;
   $('start-ar').onclick=startAR;
   $('return-preview').onclick=stopAR;
   document.addEventListener('visibilitychange',()=>{
