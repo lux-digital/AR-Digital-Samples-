@@ -527,6 +527,9 @@
       {
         name:'lux-scene',
         onAttach:({video})=>{if(wallGuide)wallGuide.attachVideo(video);},
+        onCameraStatusChange:({status,video})=>{
+          if(wallGuide && status==='hasVideo') wallGuide.attachVideo(video);
+        },
         onStart:()=>{
           const xr=XR8.Threejs.xrScene();
           activeScene=xr.scene;
