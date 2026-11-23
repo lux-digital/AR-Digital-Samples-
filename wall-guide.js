@@ -1,151 +1,312 @@
-/* LUX prototype wall-alignment guide.
-   8th Wall offers floor-plane tracking + metric scale, not native vertical-plane
-   detection. We estimate a wall from SLAM world feature points when possible.
-   If insufficient evidence exists, show a camera-aligned guide at 1.45m.
-   A white grid alone must NEVER be presented as proof of wall detection. */
-(function () {
-  'use strict';
+/* LUX multi-sensor wall guidance, v2 (experimental).
+   Three signals: calibrated 8th Wall floor (Y=0), lightweight camera seam
+   contrast, and SLAM world points. A confirmed wall requires temporal stability.
+   No native vertical-plane API is implied. After placement the anchor stays
+   fixed in world coordinates; this module never moves placed content.
+*/
+(function(){
+'use strict';
+window.createLuxWallGuide=function(THREE){
+  const stage=document.getElementById('stage');
+  const svgNS='http://www.w3.org/2000/svg';
+  const overlay=document.createElement('div');
+  overlay.className='lux-wall-guide';
+  overlay.setAttribute('aria-live','polite');
+  const svg=document.createElementNS(svgNS,'svg');
+  svg.setAttribute('viewBox','0 0 1000 1000');
+  svg.setAttribute('preserveAspectRatio','none');
+  svg.classList.add('lux-seam-svg');
+  const line=document.createElementNS(svgNS,'path');
+  line.setAttribute('fill','none');
+  line.setAttribute('stroke-width','3');
+  line.setAttribute('stroke-linecap','round');
+  svg.appendChild(line);
+  const instructions=document.createElement('div');
+  instructions.className='lux-wall-instructions';
+  instructions.textContent='Slowly scan the bottom edge of a wall';
+  overlay.append(svg,instructions);
+  stage.appendChild(overlay);
 
-  window.createLuxWallGuide = function createLuxWallGuide(THREE) {
-    const width=2.30, height=2.25, cell=.25;
-    const vertices=[];
-    for (let x=-width/2;x<=width/2+.001;x+=cell) {
-      vertices.push(x,-height/2,0,x,height/2,0);
+  const group=new THREE.Group();
+  const vertices=[];
+  for(let i=-5;i<=5;i++){
+    const v=i*.22;
+    vertices.push(v,-1.1,0,v,1.1,0);
+    vertices.push(-1.1,v,0,1.1,v,0);
+  }
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+  const material=new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.27,depthTest:false,depthWrite:false});
+  const grid=new THREE.LineSegments(geo,material);
+  grid.renderOrder=70;
+  group.add(grid);
+  group.visible=false;
+
+  const pixelCanvas=document.createElement('canvas');
+  pixelCanvas.width=176;pixelCanvas.height=112;
+  const ctx=pixelCanvas.getContext('2d',{willReadFrequently:true});
+  const raycaster=new THREE.Raycaster();
+  const floor=new THREE.Plane(new THREE.Vector3(0,1,0),0);
+  const v2=new THREE.Vector2();
+  const camPos=new THREE.Vector3(),dir=new THREE.Vector3();
+  let video=null,enabled=false,lastImageAt=0,lastPointsAt=0;
+  let imageLine=null,pointsPlane=null,pointsAt=0;
+  let candidate=null,stable=0,locked=null;
+  let manualStart=null,manualPose=null,manualStep=0;
+  let lastUi='',imageReady=false,debug={cameraFrames:0,seamFrames:0,worldPoints:0};
+  let trackedNormal=false;
+
+  const clamp=(x,min,max)=>Math.max(min,Math.min(max,x));
+  const angleDifference=(a,b)=>Math.abs(Math.atan2(Math.sin(a-b),Math.cos(a-b)));
+
+  function setText(t){
+    if(lastUi===t)return;
+    lastUi=t;instructions.textContent=t;
+  }
+  function setActive(active){
+    enabled=!!active;
+    overlay.hidden=!enabled;
+    group.visible=enabled;
+    line.setAttribute('d','');
+    if(enabled){
+      stable=0;locked=null;manualStart=null;manualPose=null;manualStep=0;
+      imageLine=null;pointsPlane=null;pointsAt=0;
+      setText('Scan slowly along the floor–wall junction');
     }
-    for (let y=-height/2;y<=height/2+.001;y+=cell) {
-      vertices.push(-width/2,y,0,width/2,y,0);
-    }
-    const geom=new THREE.BufferGeometry();
-    geom.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
-    const mat=new THREE.LineBasicMaterial({
-      color:0xffffff, transparent:true, opacity:.48,
-      depthTest:false,depthWrite:false
-    });
-    const grid=new THREE.LineSegments(geom,mat);
-    grid.renderOrder=50;
-    const group=new THREE.Group();
-    group.add(grid);
-    group.visible=false;
+  }
+  function attachVideo(element){video=element||null;}
 
-    const position=new THREE.Vector3();
-    const facing=new THREE.Vector3();
-    const forward=new THREE.Vector3();
-    const cameraPos=new THREE.Vector3();
-    const target=new THREE.Vector3();
-    let active=false;
-    let locked=null;
-    let updatedAt=0;
-    let filteredPlane=null;
-    let lastEstimateAt=0;
-    const smooth=.27;
-
-    // RANSAC on x/z with a substantial vertical spread. A vertical wall is a
-    // line in top-down space; the floor cannot satisfy the Y-span requirement.
-    function estimateVerticalPlane(raw,camera) {
-      if (!Array.isArray(raw)||raw.length<12) return null;
-      camera.getWorldPosition(cameraPos);
-      camera.getWorldDirection(forward);
-      const candidates=[];
-      const stride=Math.max(1,Math.ceil(raw.length/180));
-      for (let i=0;i<raw.length;i+=stride) {
-        const item=raw[i],p=item&&item.position;
-        if (!p||![p.x,p.y,p.z].every(Number.isFinite)) continue;
-        const dx=p.x-cameraPos.x,dy=p.y-cameraPos.y,dz=p.z-cameraPos.z;
-        const distance=Math.hypot(dx,dy,dz);
-        const front=dx*forward.x+dy*forward.y+dz*forward.z;
-        if (distance<.45||distance>4||front<.35) continue;
-        candidates.push({x:p.x,y:p.y,z:p.z});
+  // No heavy ML dependency. Sample a low-resolution camera image at ~3 FPS;
+  // detect a *candidate* long floor/wall contrast edge, not semantic certainty.
+  function sampleImage(now){
+    if(!ctx||!video||video.readyState<2||now-lastImageAt<330)return;
+    lastImageAt=now;
+    const W=pixelCanvas.width,H=pixelCanvas.height;
+    try{
+      const vw=video.videoWidth||W,vh=video.videoHeight||H;
+      const stagePortrait=stage.clientHeight>stage.clientWidth;
+      const rotate=stagePortrait && vw>vh*1.12;
+      ctx.save();
+      ctx.clearRect(0,0,W,H);
+      if(rotate){
+        ctx.translate(W/2,H/2);ctx.rotate(Math.PI/2);
+        ctx.drawImage(video,-H/2,-W/2,H,W);
+      }else ctx.drawImage(video,0,0,W,H);
+      ctx.restore();
+      const img=ctx.getImageData(0,0,W,H).data;
+      const luma=new Float32Array(W*H);
+      for(let i=0,j=0;i<img.length;i+=4,j++){
+        luma[j]=img[i]*.299+img[i+1]*.587+img[i+2]*.114;
       }
-      if (candidates.length<12) return null;
       let best=null;
-      const n=candidates.length;
-      const attempts=Math.min(85,n*2);
-      for(let i=0;i<attempts;i++){
-        const a=candidates[(i*37+7)%n];
-        const b=candidates[(i*19+Math.floor(i/2)*23+13)%n];
-        const dx=b.x-a.x,dz=b.z-a.z,len=Math.hypot(dx,dz);
-        if(len<.38) continue;
-        const nx=-dz/len,nz=dx/len;
-        let sumX=0,sumY=0,sumZ=0,minY=Infinity,maxY=-Infinity;
-        let minAlong=Infinity,maxAlong=-Infinity,count=0;
-        for(const p of candidates) {
-          if(Math.abs((p.x-a.x)*nx+(p.z-a.z)*nz)>.075) continue;
-          const along=(p.x-a.x)*dx/len+(p.z-a.z)*dz/len;
-          minAlong=Math.min(minAlong,along);
-          maxAlong=Math.max(maxAlong,along);
-          minY=Math.min(minY,p.y);
-          maxY=Math.max(maxY,p.y);
-          sumX+=p.x;sumY+=p.y;sumZ+=p.z;count++;
-        }
-        const ySpan=maxY-minY,hSpan=maxAlong-minAlong;
-        if(count<12||ySpan<.52||hSpan<.55) continue;
-        const score=count*Math.min(ySpan,2)*Math.min(hSpan,2);
-        if(!best||score>best.score) {
-          best={score,count,x:sumX/count,y:sumY/count,z:sumZ/count,nx,nz};
+      // Scan plausible seams in the lower half, allowing moderate perspective
+      // slope. Confidence is contrast + cross-column support, not ML semantics.
+      for(let slope=-.23;slope<=.231;slope+=.046){
+        for(let intercept=.44;intercept<=.841;intercept+=.021){
+          let sum=0,support=0,squares=0;
+          for(let i=0;i<16;i++){
+            const x=(i+.5)/16,px=Math.round(x*(W-1));
+            const y=intercept+slope*(x-.5),py=Math.round(y*H);
+            if(py<7||py>H-8)continue;
+            const d=Math.abs(luma[(py+3)*W+px]-luma[(py-3)*W+px]);
+            const dd=Math.max(0,d-13);
+            sum+=Math.min(85,dd);squares+=d*d;
+            if(d>22)support++;
+          }
+          // Reject narrow/local edges even if they are very strong.
+          if(support<11)continue;
+          const avg=sum/16;
+          const score=avg*(support/16);
+          if(!best||score>best.score)best={score,support,slope,intercept};
         }
       }
-      if(!best) return null;
-      // Put the grid at the detected feature plane center, with its normal
-      // pointing toward the person holding the phone.
-      if((cameraPos.x-best.x)*best.nx+(cameraPos.z-best.z)*best.nz<0){
-        best.nx*=-1;best.nz*=-1;
-      }
-      return {
-        position:new THREE.Vector3(best.x,best.y,best.z),
-        rotation:new THREE.Euler(0,Math.atan2(best.nx,best.nz),0),
-        count:best.count
-      };
+      imageReady=true;debug.cameraFrames++;
+      if(best&&best.score>12.5) {
+        imageLine={...best,confidence:clamp(best.score/35,0,1),timestamp:now};
+        debug.seamFrames++;
+      }else imageLine=null;
+    }catch(err){
+      imageReady=false;imageLine=null;
+      // Some browsers restrict reading their camera video. Keep manual fallback.
+      if(debug.cameraFrames===0)console.warn('LUX seam sampling unavailable:',err.message);
     }
+  }
 
-    function setActive(value){
-      active=Boolean(value);
-      group.visible=active;
-      if(!active){filteredPlane=null;locked=null;}
+  function detectPointWall(raw,camera){
+    if(!Array.isArray(raw)||raw.length<16)return null;
+    camera.getWorldPosition(camPos);camera.getWorldDirection(dir);
+    const pts=[];
+    for(let i=0;i<raw.length;i+=Math.max(1,Math.ceil(raw.length/180))){
+      const r=raw[i],p=r&&r.position;
+      if(!p||![p.x,p.y,p.z].every(Number.isFinite))continue;
+      const dx=p.x-camPos.x,dy=p.y-camPos.y,dz=p.z-camPos.z;
+      const distance=Math.hypot(dx,dy,dz);
+      if(distance<.45||distance>5||dx*dir.x+dy*dir.y+dz*dir.z<.25)continue;
+      if(r.confidence!=null && r.confidence<.28)continue;
+      pts.push(p);
     }
-    function update(camera,worldPoints,trackingNormal){
-      if(!active||!camera) return;
-      const now=performance.now();
-      camera.updateMatrixWorld(true);
-      camera.getWorldPosition(cameraPos);
-      camera.getWorldDirection(forward);
-      if(trackingNormal&&now-lastEstimateAt>360) {
-        lastEstimateAt=now;
-        const result=estimateVerticalPlane(worldPoints,camera);
-        if(result){
-          filteredPlane=result;
-          updatedAt=now;
-        }
+    debug.worldPoints=pts.length;
+    if(pts.length<14)return null;
+    // Deterministic RANSAC candidate selection: reproducible test runs.
+    let best=null;
+    for(let i=0;i<Math.min(110,pts.length*3);i++){
+      const a=pts[(i*29+7)%pts.length],b=pts[(i*17+Math.floor(i/3)*11+13)%pts.length];
+      const dx=b.x-a.x,dz=b.z-a.z,len=Math.hypot(dx,dz);
+      if(len<.38)continue;
+      let nx=-dz/len,nz=dx/len,score=0,sumX=0,sumZ=0,minY=1e9,maxY=-1e9,minU=1e9,maxU=-1e9;
+      for(const p of pts){
+        if(Math.abs((p.x-a.x)*nx+(p.z-a.z)*nz)>.065)continue;
+        const u=((p.x-a.x)*dx+(p.z-a.z)*dz)/len;
+        minU=Math.min(minU,u);maxU=Math.max(maxU,u);
+        minY=Math.min(minY,p.y);maxY=Math.max(maxY,p.y);
+        sumX+=p.x;sumZ+=p.z;score++;
       }
-      const usable=trackingNormal&&filteredPlane&&(now-updatedAt<2600);
-      if(usable){
-        target.copy(filteredPlane.position);
-        facing.set(Math.sin(filteredPlane.rotation.y),0,Math.cos(filteredPlane.rotation.y));
-      }else{
-        target.copy(cameraPos).addScaledVector(forward,1.45);
-        facing.set(-forward.x,0,-forward.z);
-        if(facing.lengthSq()<.0001) facing.set(0,0,1);
-        facing.normalize();
+      if(score<13||maxY-minY<.50||maxU-minU<.55)continue;
+      const merit=score*Math.min(maxY-minY,2)*Math.min(maxU-minU,2);
+      if(!best||merit>best.merit){
+        const cx=sumX/score,cz=sumZ/score;
+        if((camPos.x-cx)*nx+(camPos.z-cz)*nz<0){nx=-nx;nz=-nz;}
+        best={merit,count:score,position:new THREE.Vector3(cx,1.10,cz),
+          yaw:Math.atan2(nx,nz),confidence:clamp(merit/40,0,1)};
       }
-      const yaw=Math.atan2(facing.x,facing.z);
-      if(!locked||(!locked.detected&&usable)) {
-        group.position.copy(target);
-        group.rotation.set(0,yaw,0);
-      } else {
-        group.position.lerp(target,smooth);
-        let diff=Math.atan2(Math.sin(yaw-group.rotation.y),Math.cos(yaw-group.rotation.y));
-        group.rotation.y+=diff*smooth;
-      }
-      group.updateMatrixWorld(true);
-      locked={position:group.position.clone(),rotation:group.rotation.clone(),detected:!!usable};
-      mat.opacity=usable?.63:.32;
     }
-    function getPose(){
-      return locked&&{
-        position:locked.position.clone(),
-        rotation:locked.rotation.clone(),
-        detected:locked.detected
-      };
+    return best;
+  }
+
+  function floorPoint(camera,x,y){
+    // Convert normalized device screen coordinates to world floor intersection.
+    v2.set(x*2-1,1-y*2);
+    raycaster.setFromCamera(v2,camera);
+    const hit=raycaster.ray.intersectPlane(floor,new THREE.Vector3());
+    if(!hit)return null;
+    camera.getWorldPosition(camPos);
+    const d=hit.distanceTo(camPos);
+    if(!Number.isFinite(d)||d<.4||d>7)return null;
+    return hit;
+  }
+  function poseFromFloorEnds(left,right,camera){
+    const p0=floorPoint(camera,left.x,left.y),p1=floorPoint(camera,right.x,right.y);
+    if(!p0||!p1)return null;
+    const d=p1.clone().sub(p0),len=Math.hypot(d.x,d.z);
+    if(len<.32||len>6)return null;
+    let nx=-d.z/len,nz=d.x/len;
+    camera.getWorldPosition(camPos);
+    const cx=(p0.x+p1.x)/2,cz=(p0.z+p1.z)/2;
+    if((camPos.x-cx)*nx+(camPos.z-cz)*nz<0){nx=-nx;nz=-nz;}
+    return {position:new THREE.Vector3(cx,1.10,cz),
+      yaw:Math.atan2(nx,nz),confidence:.72,source:'seam'};
+  }
+  function imageCandidate(camera){
+    if(!imageLine||performance.now()-imageLine.timestamp>700)return null;
+    const l=imageLine;
+    const p=poseFromFloorEnds(
+      {x:.14,y:l.intercept+l.slope*(.14-.5)},
+      {x:.86,y:l.intercept+l.slope*(.86-.5)},camera);
+    if(p){p.confidence=clamp(l.confidence*.87+.08,0,1);}
+    return p;
+  }
+  function reconcile(a,b){
+    if(!a)return b?{...b,source:'world-points'}:null;
+    if(!b)return a;
+    const dist=Math.hypot(a.position.x-b.position.x,a.position.z-b.position.z);
+    const yaw=angleDifference(a.yaw,b.yaw);
+    if(dist<.40 && yaw<.50){
+      const combined={position:a.position.clone().lerp(b.position,.25),
+        yaw:a.yaw+Math.atan2(Math.sin(b.yaw-a.yaw),Math.cos(b.yaw-a.yaw))*.25,
+        confidence:Math.min(1,.84+.12*Math.min(a.confidence,b.confidence)),
+        source:'confirmed'};
+      return combined;
     }
-    return {group,setActive,update,getPose};
-  };
+    // Disagreement means no confirmed wall, not the average of bad guesses.
+    return null;
+  }
+  function update(camera,worldPoints,normal){
+    if(!enabled||!camera)return;
+    const now=performance.now();
+    trackedNormal=normal;
+    camera.updateMatrixWorld(true);
+    if(trackedNormal&&now-lastImageAt>330)sampleImage(now);
+    if(trackedNormal&&Array.isArray(worldPoints)&&now-lastPointsAt>450){
+      lastPointsAt=now;
+      pointsPlane=detectPointWall(worldPoints,camera);
+      pointsAt=now;
+    }
+    const seam=trackedNormal?imageCandidate(camera):null;
+    const wall=trackedNormal&&now-pointsAt<1200?pointsPlane:null;
+    const next=trackedNormal?reconcile(seam,wall):null;
+    // Every candidate must be both confident and temporally consistent.
+    if(next&&next.confidence>=.70){
+      if(candidate && candidate.position.distanceTo(next.position)<.28
+         &&angleDifference(candidate.yaw,next.yaw)<.24){
+        candidate.position.lerp(next.position,.30);
+        candidate.yaw+=Math.atan2(Math.sin(next.yaw-candidate.yaw),
+                                   Math.cos(next.yaw-candidate.yaw))*.30;
+        candidate.confidence=next.confidence;candidate.source=next.source;
+        stable=Math.min(stable+1,20);
+      }else {candidate=next;stable=1;}
+    } else if(now-lastImageAt<900){stable=Math.max(0,stable-1);}
+    const ready=!!(candidate&&stable>=5&&trackedNormal);
+    locked=ready?{
+      position:candidate.position.clone(),
+      rotation:new THREE.Euler(0,candidate.yaw,0),
+      confidence:candidate.confidence,
+      detected:true,source:candidate.source
+    }:manualPose;
+    if(locked){
+      group.position.copy(locked.position);
+      group.rotation.copy(locked.rotation);
+      material.opacity=ready?.69:.42;
+      material.color.setHex(ready?0x89e4ae:0xffffff);
+    }else{
+      // A visual *guide* only: no object gets placed here automatically.
+      camera.getWorldPosition(camPos);camera.getWorldDirection(dir);
+      group.position.copy(camPos).addScaledVector(dir,1.5);
+      group.rotation.set(0,Math.atan2(-dir.x,-dir.z),0);
+      material.opacity=.20;material.color.setHex(0xffffff);
+    }
+    group.updateMatrixWorld(true);
+    const showSeam=seam&&imageLine;
+    if(showSeam){
+      const p=imageLine;
+      const y0=clamp(p.intercept-p.slope*.5,0,1)*1000;
+      const y1=clamp(p.intercept+p.slope*.5,0,1)*1000;
+      line.setAttribute('d','M 0 '+y0+' L 1000 '+y1);
+      line.setAttribute('stroke',ready?'#83edb1':'#ffffff');
+      line.setAttribute('stroke-dasharray',ready?'none':'9 7');
+    }else line.setAttribute('d','');
+    if(manualStep===1)setText('Tap the other end of the floor–wall edge');
+    else if(ready)setText('Wall alignment ready — tap to place');
+    else if(!trackedNormal)setText('Move slowly to initialize tracking');
+    else if(seam&&wall)setText('Checking floor edge against 3D wall features…');
+    else if(seam)setText('Floor edge found — verifying wall position…');
+    else if(wall)setText('3D wall features found — scan the floor edge');
+    else setText('Scan the floor–wall junction; or tap two ends manually');
+  }
+  function getPose(){
+    return locked&&{
+      position:locked.position.clone(),rotation:locked.rotation.clone(),
+      confidence:locked.confidence,detected:locked.detected,
+      source:locked.source
+    };
+  }
+  function isReady(){return !!(locked&&locked.detected&&stable>=5&&trackedNormal);}
+  function tap(camera,x,y){
+    if(!enabled)return{action:'inactive'};
+    if(isReady())return{action:'place',pose:getPose()};
+    if(!trackedNormal)return{action:'wait'};
+    const p=floorPoint(camera,x,y);
+    if(!p)return{action:'aim-down'};
+    if(!manualStart){manualStart={x,y};manualStep=1;return{action:'first'};}
+    const pose=poseFromFloorEnds(manualStart,{x,y},camera);
+    if(!pose){manualStart={x,y};return{action:'retry'};}
+    manualPose={position:pose.position,rotation:new THREE.Euler(0,pose.yaw,0),
+      confidence:.72,detected:false,source:'manual'};
+    locked=manualPose;manualStep=2;
+    return{action:'place',pose:getPose()};
+  }
+  function getDebug(){return{...debug,trackingNormal:trackedNormal,
+    source:locked&&locked.source,stable,ready:isReady(),videoPresent:!!video,
+    imageReadable:imageReady};}
+  return{group,setActive,update,attachVideo,getPose,isReady,tap,getDebug};
+};
 })();
