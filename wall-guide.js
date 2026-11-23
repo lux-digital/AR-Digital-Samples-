@@ -62,7 +62,10 @@ window.createLuxWallGuide=function(THREE){
   let imageLine=null,pointsPlane=null,pointsAt=0;
   let candidate=null,stable=0,locked=null,confirmedLock=null,lastDecisionAt=0;
   let manualStart=null,manualPose=null,manualStep=0;
-  let lastUi='',imageReady=false,debug={cameraFrames:0,seamFrames:0,worldPoints:0};
+  let lastUi='',imageReady=false,debug={
+    cameraFrames:0,seamFrames:0,worldPoints:0,
+    imageAttempts:0,imageError:null
+  };
   let trackedNormal=false;
 
   const clamp=(x,min,max)=>Math.max(min,Math.min(max,x));
@@ -92,6 +95,7 @@ window.createLuxWallGuide=function(THREE){
   function sampleImage(now){
     if(!ctx||!video||video.readyState<2||now-lastImageAt<330)return;
     lastImageAt=now;
+    debug.imageAttempts++;
     const W=pixelCanvas.width,H=pixelCanvas.height;
     try{
       const vw=video.videoWidth||W,vh=video.videoHeight||H;
@@ -132,12 +136,14 @@ window.createLuxWallGuide=function(THREE){
         }
       }
       imageReady=true;debug.cameraFrames++;
+      debug.imageError=null;
       if(best&&best.score>12.5) {
         imageLine={...best,confidence:clamp(best.score/35,0,1),timestamp:now};
         debug.seamFrames++;
       }else imageLine=null;
     }catch(err){
       imageReady=false;imageLine=null;
+      debug.imageError=String(err&&err.message||err).slice(0,160);
       // Some browsers restrict reading their camera video. Keep manual fallback.
       if(debug.cameraFrames===0)console.warn('LUX seam sampling unavailable:',err.message);
     }
@@ -236,7 +242,9 @@ window.createLuxWallGuide=function(THREE){
     const now=performance.now();
     trackedNormal=normal;
     camera.updateMatrixWorld(true);
-    if(trackedNormal&&now-lastImageAt>330)sampleImage(now);
+    // Read the video for diagnostics even during LIMITED tracking; only
+    // claim a wall once XR tracking is NORMAL.
+    if(now-lastImageAt>330)sampleImage(now);
     if(trackedNormal&&Array.isArray(worldPoints)&&now-lastPointsAt>450){
       lastPointsAt=now;
       pointsPlane=detectPointWall(worldPoints,camera);
@@ -340,9 +348,36 @@ window.createLuxWallGuide=function(THREE){
     locked=manualPose;manualStep=2;
     return{action:'place',pose:getPose()};
   }
-  function getDebug(){return{...debug,trackingNormal:trackedNormal,
-    source:locked&&locked.source,stable,ready:isReady(),videoPresent:!!video,
-    imageReadable:imageReady};}
+  function getDebug(){return{
+    ...debug,
+    trackingNormal,
+    source:locked&&locked.source,
+    stable,ready:isReady(),
+    videoPresent:!!video,
+    videoReadyState:video&&video.readyState,
+    videoWidth:video&&video.videoWidth,
+    videoHeight:video&&video.videoHeight,
+    imageReadable:imageReady,
+    seamCandidate:imageLine&&{
+      score:Math.round(imageLine.score*10)/10,
+      slope:imageLine.slope,
+      intercept:imageLine.intercept,
+      support:imageLine.support,
+      confidence:imageLine.confidence
+    },
+    pointWall:pointsPlane&&{
+      count:pointsPlane.count,
+      confidence:pointsPlane.confidence,
+      position:{
+        x:pointsPlane.position.x,
+        y:pointsPlane.position.y,
+        z:pointsPlane.position.z
+      }
+    },
+    candidateSource:candidate&&candidate.source,
+    confirmed:!!confirmedLock,
+    manualStep
+  };}
   return{group,setActive,update,attachVideo,getPose,isReady,tap,getDebug};
 };
 })();
