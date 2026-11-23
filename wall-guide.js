@@ -140,6 +140,73 @@ window.createLuxWallGuide=function(THREE){
 
   // No heavy ML dependency. Sample a low-resolution camera image at ~3 FPS;
   // detect a *candidate* long floor/wall contrast edge, not semantic certainty.
+  // Shared detector for video sampling and official XR8 pixel-array output.
+  function analyzeLuma(luma,W,H,now){
+    let best=null;
+    // Scan plausible seams in the lower half, allowing moderate perspective
+    // slope. Confidence is contrast + cross-column support, not ML semantics.
+    for(let slope=-.23;slope<=.231;slope+=.046){
+      for(let intercept=.44;intercept<=.841;intercept+=.021){
+        let sum=0,support=0,squares=0;
+        for(let i=0;i<16;i++){
+          const x=(i+.5)/16,px=Math.round(x*(W-1));
+          const y=intercept+slope*(x-.5),py=Math.round(y*H);
+          if(py<7||py>H-8)continue;
+          const d=Math.abs(luma[(py+3)*W+px]-luma[(py-3)*W+px]);
+          const dd=Math.max(0,d-13);
+          sum+=Math.min(85,dd);squares+=d*d;
+          if(d>22)support++;
+        }
+        // Reject narrow/local edges even if they are very strong.
+        if(support<11)continue;
+        const avg=sum/16;
+        const score=avg*(support/16);
+        if(!best||score>best.score)best={score,support,slope,intercept};
+      }
+    }
+    imageReady=true;
+    debug.cameraFrames++;
+    debug.imageError=null;
+    if(best&&best.score>12.5){
+      imageLine={...best,confidence:clamp(best.score/35,0,1),timestamp:now};
+      debug.seamFrames++;
+    }else imageLine=null;
+  }
+
+  // XR8.CameraPixelArray returns actual camera luminance pixels independent of
+  // whether Safari exposes a readable HTMLVideoElement.
+  function samplePixels(result){
+    if(!enabled||!result)return;
+    const now=performance.now();
+    if(now-lastImageAt<340)return;
+    const {pixels,rows,cols,rowBytes}=result;
+    if(!pixels||!pixels.length||!rows||!cols){
+      debug.pixelUnavailable=(debug.pixelUnavailable||0)+1;
+      return;
+    }
+    const stride=rowBytes||cols;
+    const channels=Math.max(1,Math.floor(stride/cols));
+    if(stride<cols || pixels.length<rows*stride){
+      debug.pixelError='Pixel array dimensions or stride unavailable';
+      return;
+    }
+    lastImageAt=now;
+    debug.imageAttempts++;
+    debug.pixelSource='XR8.CameraPixelArray';
+    debug.pixelWidth=cols;
+    debug.pixelHeight=rows;
+    const luma=new Float32Array(cols*rows);
+    for(let y=0;y<rows;y++){
+      const row=y*stride;
+      for(let x=0;x<cols;x++){
+        const j=row+x*channels;
+        luma[y*cols+x]=channels>=3?
+          (pixels[j]*.299+pixels[j+1]*.587+pixels[j+2]*.114):pixels[j];
+      }
+    }
+    analyzeLuma(luma,cols,rows,now);
+  }
+
   function sampleImage(now){
     if(!ctx||!video||video.readyState<2||now-lastImageAt<330)return;
     lastImageAt=now;
@@ -161,34 +228,7 @@ window.createLuxWallGuide=function(THREE){
       for(let i=0,j=0;i<img.length;i+=4,j++){
         luma[j]=img[i]*.299+img[i+1]*.587+img[i+2]*.114;
       }
-      let best=null;
-      // Scan plausible seams in the lower half, allowing moderate perspective
-      // slope. Confidence is contrast + cross-column support, not ML semantics.
-      for(let slope=-.23;slope<=.231;slope+=.046){
-        for(let intercept=.44;intercept<=.841;intercept+=.021){
-          let sum=0,support=0,squares=0;
-          for(let i=0;i<16;i++){
-            const x=(i+.5)/16,px=Math.round(x*(W-1));
-            const y=intercept+slope*(x-.5),py=Math.round(y*H);
-            if(py<7||py>H-8)continue;
-            const d=Math.abs(luma[(py+3)*W+px]-luma[(py-3)*W+px]);
-            const dd=Math.max(0,d-13);
-            sum+=Math.min(85,dd);squares+=d*d;
-            if(d>22)support++;
-          }
-          // Reject narrow/local edges even if they are very strong.
-          if(support<11)continue;
-          const avg=sum/16;
-          const score=avg*(support/16);
-          if(!best||score>best.score)best={score,support,slope,intercept};
-        }
-      }
-      imageReady=true;debug.cameraFrames++;
-      debug.imageError=null;
-      if(best&&best.score>12.5) {
-        imageLine={...best,confidence:clamp(best.score/35,0,1),timestamp:now};
-        debug.seamFrames++;
-      }else imageLine=null;
+      analyzeLuma(luma,W,H,now);
     }catch(err){
       imageReady=false;imageLine=null;
       debug.imageError=String(err&&err.message||err).slice(0,160);
@@ -427,6 +467,6 @@ window.createLuxWallGuide=function(THREE){
     confirmed:!!confirmedLock,
     manualStep
   };}
-  return{group,setActive,update,attachVideo,getPose,isReady,tap,getDebug,setTestPlacement};
+  return{group,setActive,update,attachVideo,samplePixels,getPose,isReady,tap,getDebug,setTestPlacement};
 };
 })();
