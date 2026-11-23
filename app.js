@@ -471,9 +471,9 @@
     $('customize').hidden=false;
     tell(pose.source==='confirmed'
       ? 'Seam and 3D wall cues agreed. Check the sample from several angles.'
-      : (pose.detected
-          ? 'Estimated wall placed. Verify alignment and physical size.'
-          : 'Manual wall alignment placed. Inspect from several angles.'),3400);
+      : (pose.source==='approximate-test'
+          ? 'TEST ONLY: this sample is not aligned to a detected wall.'
+          : 'Manual wall alignment placed. Inspect from several angles.'),4500);
   }
   stage.addEventListener('pointerup',event=>{
     if (!arRunning||arPlaced||!stage.classList.contains('placing')) return;
@@ -496,6 +496,17 @@
       tell('Try selecting two points farther apart on the floor edge.',2800);
     }
   });
+  // Expose camera solely to the guide's explicit approximate test-placement
+  // control. Real wall placement still requires confirmed tracking or two taps.
+  window.luxActiveCamera=()=>arRunning?activeCamera:null;
+  if(wallGuide&&wallGuide.setTestPlacement){
+    wallGuide.setTestPlacement(pose=>{
+      if(diag)diag.note('test-placement-requested',{
+        source:pose.source,trackingNormal
+      });
+      placeOnWall(pose);
+    });
+  }
   $('reposition').onclick=startPlacing;
 
   function setMode(ar) {
@@ -528,7 +539,16 @@
       disableWorldTracking:false,scale:'absolute',
       enableLighting:false,enableWorldPoints:true
     });
+    const pixelModule=XR8.CameraPixelArray &&
+      typeof XR8.CameraPixelArray.pipelineModule==='function'
+        ? XR8.CameraPixelArray.pipelineModule({
+            luminance:true,width:112,height:176
+          }) : null;
+    if(diag)diag.note('camera-pixel-module',{
+      available:!!pixelModule
+    });
     XR8.addCameraPipelineModules([
+      ...(pixelModule?[pixelModule]:[]),
       XR8.GlTextureRenderer.pipelineModule(),
       XR8.Threejs.pipelineModule(),
       XR8.XrController.pipelineModule(),
@@ -575,13 +595,15 @@
           startPlacing();
           tell('Move phone slowly to let tracking initialize',2200);
         },
-        onUpdate:({processCpuResult}={})=>{
+        onUpdate:({processCpuResult,processGpuResult}={})=>{
           if(!arRunning) return;
           const reality=processCpuResult&&processCpuResult.reality;
           if(reality&&reality.trackingStatus){
             trackingNormal=reality.trackingStatus==='NORMAL';
           }
           if (wallGuide && !arPlaced) {
+            const pixelResult=processGpuResult&&processGpuResult.camerapixelarray;
+            if(pixelResult&&wallGuide.samplePixels)wallGuide.samplePixels(pixelResult);
             wallGuide.update(activeCamera,reality&&reality.worldPoints,trackingNormal);
           }
           if(diag)diag.sample(reality,wallGuide,activeCamera);
