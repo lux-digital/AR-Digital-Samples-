@@ -25,6 +25,14 @@ This is a static website. No npm installation, backend or Adobe Aero account is 
 
 **Status:** The interface, rendering logic and AR integration are committed, and app.js passes a JavaScript syntax check. These have NOT been visually tested or validated on a real AR device yet. This is a development prototype, not production-ready wall recognition or accurately verified tracking.
 
+## Collecting on-device AR diagnostics (test 10)
+
+The AR view now has a **SAVE DIAGNOSTICS** button near the upper-right, visible while scanning or after placement. It also stays available if the XR startup fails or after returning to preview. Press the button to open the report dialog, then select **SHARE / SAVE JSON REPORT** (iPhone: Save to Files or share directly) or **COPY REPORT TEXT** as a fallback. Send the saved `.json` file back through the ChatGPT conversation.
+
+Technical data captured locally: camera initialization state, video readiness/dimensions, XR tracking statuses and reasons, sampled feature-point counts, seam detector confidence and errors, wall-estimate agreement, placement taps/poses, runtime exceptions, viewport and device/browser information. No camera frames, photos, video, audio, GPS coordinates or remote telemetry uploads are captured. Nothing is transmitted automatically.
+
+A debugging overlay can still be enabled using `?arDebug=1`, but the Save Diagnostics button no longer requires that option. The report will help distinguish between unsupported/unavailable camera frames, insufficient tracked points, sensor disagreement and genuine SLAM tracking instability. It does not itself improve physical tracking.
+
 ## AR placement limitation
 
 8th Wall's native SLAM estimates **one horizontal ground plane**, not native vertical wall planes. The experimental `wall-guide.js` v2 combines three sources:
@@ -45,6 +53,7 @@ World tracking uses `scale: 'absolute'` (real-world metre coordinates), so the u
 - styles.css — responsive styling
 - app.js — loading, caching, cropping shader, trim meshes, resize handles, preview and XR8 pipeline
 - wall-guide.js — experimental camera seam detection, floor-plane raycasts, feature-point fitting and fixed-pose grid overlay
+- diagnostics.js — on-device diagnostic recorder and iPhone-friendly JSON report export
 - Profiles / Textures / ICONS — the existing source assets
 
 Three.js and GLTFLoader use pinned version 0.146.0 (classic global build for compatibility with XR8's Three.js pipeline). XR8 is loaded from the official @8thwall/engine-binary@1 package. World tracking is in the distributed proprietary binary, not the MIT-only framework.
