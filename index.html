@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="LUX AR Samples">
   <link rel="apple-touch-icon" href="./icon.png?v=1">
   <link rel="icon" type="image/png" href="./icon.png?v=1">
-  <link rel="stylesheet" href="./styles.css?v=4">
+  <link rel="stylesheet" href="./styles.css?v=5">
   <link rel="stylesheet" href="./splash.css?v=4">
 </head>
 <body class="splash-visible">
@@ -77,15 +77,15 @@
     <span class="eyebrow">HOW IT WORKS</span><h2>Design it on your wall.</h2>
     <p><b>3D Preview:</b> Drag anywhere outside the edge controls to orbit around the sample. Drag any of the four circular handles to change the sample size.</p>
     <p><b>AR on a phone:</b> Tap START AR, point at a wall and move slowly to establish tracking. The white grid is a wall-alignment aid; it estimates a wall from feature points when possible. Tap anywhere to place. Walk around to inspect. Tap REPOSITION to try again.</p>
-    <p>Grid alignment is experimental; on walls without enough trackable features it falls back to a camera-aligned guide. Metric scale comes from 8th Wall tracking but needs device validation.</p>
+    <p>Automatic alignment combines a camera-image floor-seam candidate, 8th Wall's horizontal floor estimate, and 3D feature points. A white dashed line is unverified; green shows a stable estimate. If automatic detection does not confirm the wall, tap two separated points along the floor–wall edge. Both methods anchor once and remain fixed while you look away. Tracking stability and scale need device testing.</p>
     <button class="primary-button" onclick="document.getElementById('help-dialog').close()">GOT IT</button>
   </dialog>
   <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/build/three.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/loaders/GLTFLoader.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@8thwall/xrextras@1/dist/xrextras.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js" async crossorigin="anonymous" data-preload-chunks="slam"></script>
-  <script src="./wall-guide.js?v=1" defer></script>
-  <script src="./app.js?v=5" defer></script>
+  <script src="./wall-guide.js?v=2" defer></script>
+  <script src="./app.js?v=6" defer></script>
   <script src="./splash.js?v=3" defer></script>
   <!-- Copyright (c) Niantic Spatial, Inc. 8th Wall Engine Binary used under its license.
        https://github.com/8thwall/engine/blob/main/LICENSE -->
