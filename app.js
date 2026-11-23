@@ -539,11 +539,18 @@
       disableWorldTracking:false,scale:'absolute',
       enableLighting:false,enableWorldPoints:true
     });
-    const pixelModule=XR8.CameraPixelArray &&
-      typeof XR8.CameraPixelArray.pipelineModule==='function'
-        ? XR8.CameraPixelArray.pipelineModule({
-            luminance:true,width:112,height:176
-          }) : null;
+    let pixelModule=null;
+    if(XR8.CameraPixelArray && typeof XR8.CameraPixelArray.pipelineModule==='function'){
+      try{
+        pixelModule=XR8.CameraPixelArray.pipelineModule({
+          luminance:true,width:112,height:176
+        });
+      }catch(pixelError){
+        if(diag)diag.note('camera-pixel-unavailable',{
+          message:pixelError.message||String(pixelError)
+        });
+      }
+    }
     if(diag)diag.note('camera-pixel-module',{
       available:!!pixelModule
     });
@@ -561,13 +568,15 @@
           if(wallGuide)wallGuide.attachVideo(video);
           if(diag)diag.note('xr-attached',{
             status,engineVersion:version||null,
-            videoPresent:!!video,videoWidth,videoHeight
+            videoPresent:!!video,videoReadyState:video&&video.readyState,
+            videoWidth,videoHeight
           });
         },
         onCameraStatusChange:({status,video,videoWidth,videoHeight})=>{
           if(wallGuide && video) wallGuide.attachVideo(video);
           if(diag)diag.note('camera-status',{
-            status,videoPresent:!!video,videoWidth,videoHeight
+            status,videoPresent:!!video,videoReadyState:video&&video.readyState,
+            videoWidth,videoHeight
           });
         },
         onException:(error)=>{
