@@ -7,6 +7,7 @@
   'use strict';
 
   const T = window.THREE;
+  const diag = window.luxDiagnostics || null;
   const $ = (id) => document.getElementById(id);
   const stage = $('stage');
   const previewCanvas = $('preview');
@@ -439,6 +440,7 @@
     arPlaced=false;
     placement.visible=false;
     if (wallGuide) wallGuide.setActive(true);
+    if (diag){diag.state('scanning');diag.note('scan-started',{trackingNormal});}
     stage.classList.add('placing');
     document.body.classList.add('placing');
     $('reposition').hidden=true;
@@ -451,10 +453,17 @@
     // from the seam detector after placement. Tracking is owned by XR8.
     placement.position.copy(pose.position);
     placement.rotation.copy(pose.rotation);
+    if(diag)diag.note('placement',{
+      source:pose.source,detected:!!pose.detected,
+      confidence:pose.confidence,
+      position:{x:pose.position.x,y:pose.position.y,z:pose.position.z},
+      yaw:pose.rotation.y,trackingNormal
+    });
     placement.visible=true;
     placement.updateMatrixWorld(true);
     firstARPlacement=false;
     arPlaced=true;
+    if(diag)diag.state('placed');
     if(wallGuide)wallGuide.setActive(false);
     stage.classList.remove('placing');
     document.body.classList.remove('placing');
@@ -473,6 +482,8 @@
     const x=(event.clientX-rect.left)/rect.width;
     const y=(event.clientY-rect.top)/rect.height;
     const result=wallGuide?wallGuide.tap(activeCamera,x,y):null;
+    if(diag)diag.note('placement-tap',{x:Number(x.toFixed(3)),y:Number(y.toFixed(3)),
+      result:result&&result.action,trackingNormal,guide:wallGuide&&wallGuide.getDebug()});
     if(result&&result.action==='place') {
       placeOnWall(result.pose);
     }else if(result&&result.action==='aim-down'){
@@ -526,15 +537,30 @@
       fullWindow.pipelineModule(),
       {
         name:'lux-scene',
-        onAttach:({video})=>{if(wallGuide)wallGuide.attachVideo(video);},
-        onCameraStatusChange:({status,video})=>{
-          if(wallGuide && status==='hasVideo') wallGuide.attachVideo(video);
+        onAttach:({video,videoWidth,videoHeight,version,status})=>{
+          if(wallGuide)wallGuide.attachVideo(video);
+          if(diag)diag.note('xr-attached',{
+            status,engineVersion:version||null,
+            videoPresent:!!video,videoWidth,videoHeight
+          });
+        },
+        onCameraStatusChange:({status,video,videoWidth,videoHeight})=>{
+          if(wallGuide && video) wallGuide.attachVideo(video);
+          if(diag)diag.note('camera-status',{
+            status,videoPresent:!!video,videoWidth,videoHeight
+          });
+        },
+        onException:(error)=>{
+          if(diag)diag.note('xr-exception',{
+            message:error&&error.message||String(error)
+          });
         },
         onStart:()=>{
           const xr=XR8.Threejs.xrScene();
           activeScene=xr.scene;
           activeCamera=xr.camera;
           arRenderer=xr.renderer;
+          if(diag){diag.state('camera-running');diag.note('xr-started');}
           xr.renderer.outputEncoding=T.sRGBEncoding;
           xr.renderer.toneMapping=T.ACESFilmicToneMapping;
           xr.renderer.toneMappingExposure=1.3;
@@ -558,12 +584,17 @@
           if (wallGuide && !arPlaced) {
             wallGuide.update(activeCamera,reality&&reality.worldPoints,trackingNormal);
           }
+          if(diag)diag.sample(reality,wallGuide,activeCamera);
           updateHandles();
           restoreStatus();
         },
         listeners:[
           {event:'reality.trackingstatus',process:(e)=>{
             trackingNormal=e.detail && e.detail.status==='NORMAL';
+            if(diag)diag.note('tracking-status',{
+              status:e.detail&&e.detail.status,
+              reason:e.detail&&e.detail.reason
+            });
           }}
         ]
       }
@@ -572,12 +603,15 @@
     XR8.run({canvas:cameraCanvas,allowedDevices:XR8.XrConfig.device().MOBILE_AND_HEADSETS});
   }
   async function startAR() {
+    if(diag){diag.activate();diag.state('ar-requested');}
     if (arRunning||arStarting) return;
     if (!isMobile()) {
+      if(diag)diag.note('ar-failure',{message:'not mobile'});
       tell('Open this site on iPhone, iPad or Android to start real wall-tracked AR.',4600);
       return;
     }
     if (!window.isSecureContext) {
+      if(diag)diag.note('ar-failure',{message:'requires HTTPS'});
       tell('AR camera access requires HTTPS. Enable GitHub Pages or another HTTPS host.',6000);
       return;
     }
@@ -598,6 +632,7 @@
       setMode(true);
       launchXR();
     } catch(error) {
+      if(diag){diag.state('ar-failed');diag.note('ar-failure',{message:error.message||String(error)});}
       console.error('AR start error',error);
       arRunning=false;
       setMode(false);
@@ -608,6 +643,7 @@
     }
   }
   function stopAR() {
+    if(diag){diag.state('stopped');diag.note('ar-stopped');}
     if (!arRunning) return;
     if (window.XR8 && window.XR8.stop) window.XR8.stop();
     // XRExtras.FullWindowCanvas reparents this canvas into document.body;
