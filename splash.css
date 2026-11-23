@@ -11,17 +11,18 @@ body.splash-visible{overflow:hidden}
 }
 .lux-splash[hidden]{display:none!important}
 .lux-splash__image{
-  position:absolute;top:0;bottom:0;left:-9%;
-  width:118%;height:100%;display:block;
+  /* Extra overscan lets the background move about 3x faster without exposing edges. */
+  position:absolute;top:0;bottom:0;left:-23%;
+  width:146%;height:100%;display:block;
   object-fit:cover;object-position:center center;
   pointer-events:none;user-select:none;
-  /* Exactly one slow rightward sweep. It keeps moving after the UI settles. */
+  /* 15-second uninterrupted sweep; distance increased ~3x over previous version. */
   animation:lux-splash-pan 15s linear 0s 1 normal forwards;
   will-change:transform;
 }
 @keyframes lux-splash-pan{
-  from{transform:translate3d(-5%,0,0) scale(1.045)}
-  to{transform:translate3d(5%,0,0) scale(1.045)}
+  from{transform:translate3d(-12.3%,0,0) scale(1.045)}
+  to{transform:translate3d(12.3%,0,0) scale(1.045)}
 }
 /* Separate fade layer: background fades in without interrupting the linear pan
    or animating the backdrop-filter on the button. */
@@ -55,7 +56,8 @@ body.splash-visible{overflow:hidden}
   width:var(--lux-play-size);height:var(--lux-play-size);
   padding:0;border:0;background:transparent;color:#fff;
   cursor:pointer;
-  transform:translateX(-50%);
+  /* Paint in the entrance START state, even before deferred JS executes. */
+  transform:translate3d(-50%,100px,0) scale(.72);
   transform-origin:50% 50%;
   -webkit-appearance:none;appearance:none;
 }
@@ -87,7 +89,8 @@ body.splash-visible{overflow:hidden}
 .lux-splash__triangle{
   width:47%;height:47%;
   transform:translateX(2%);
-  overflow:visible;filter:drop-shadow(0 1px 1px rgba(0,0,0,.12))
+  overflow:visible;filter:drop-shadow(0 1px 1px rgba(0,0,0,.12));
+  opacity:0; /* no first-frame flash before Web Animations start */
 }
 .lux-splash__triangle path{fill:#f8f7f5}
 .lux-splash__label{
@@ -103,13 +106,15 @@ body.splash-visible{overflow:hidden}
   white-space:nowrap;
   color:#fff;
   pointer-events:none;
+  opacity:0; /* text starts faded-out, anchored to play-circle center */
 }
 .lux-splash__west{
   position:absolute;left:50%;bottom:17.4%;
   display:block;width:clamp(215px,53vw,375px);
   height:auto;max-height:16%;
   object-fit:contain;
-  transform:translateX(-50%);
+  transform:translate3d(-50%,130px,0) scale(.79);
+  opacity:0;
   pointer-events:none;user-select:none;
   transform-origin:center center;
 }
@@ -118,7 +123,8 @@ body.splash-visible{overflow:hidden}
   display:block;width:clamp(78px,19.7vw,137px);
   height:auto;max-height:12%;
   object-fit:contain;
-  transform:translateX(-50%);
+  transform:translate3d(-50%,110px,0) scale(.76);
+  opacity:0;
   pointer-events:none;user-select:none;
   transform-origin:center center;
 }
@@ -143,3 +149,16 @@ body.splash-visible{overflow:hidden}
   .lux-splash.is-ready .lux-splash__circle::after{animation:none}
   .lux-splash.is-exiting .lux-splash__image,.lux-splash.is-exiting .lux-splash__shade{transition-duration:.2s}
 }
+
+/* Keep the completed poses if the Animation API is delayed/unavailable.
+   These also eliminate a one-frame snap when an animation is cancelled. */
+.lux-splash.is-ready:not(.is-exiting) .lux-splash__start{
+  transform:translate3d(-50%,0,0) scale(1);
+}
+.lux-splash.is-ready:not(.is-exiting) .lux-splash__x,
+.lux-splash.is-ready:not(.is-exiting) .lux-splash__west{
+  transform:translate3d(-50%,0,0) scale(1);
+  opacity:1;
+}
+.lux-splash.is-ready:not(.is-exiting) .lux-splash__label,
+.lux-splash.is-ready:not(.is-exiting) .lux-splash__triangle{opacity:1}
