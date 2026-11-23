@@ -10,11 +10,11 @@
   const reduce=window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const ease='cubic-bezier(0.16, 1, 0.3, 1)';
   const entries=[
-    {element:document.getElementById('splash-x'),       delay:0,   duration:1130,dy:110,scale:.76},
-    {element:document.getElementById('splash-west'),    delay:90,  duration:1240,dy:130,scale:.79},
-    {element:start,                                     delay:190, duration:1270,dy:100,scale:.72,noFade:true},
-    {element:document.getElementById('splash-label'),   delay:420, duration:970, opacityOnly:true},
-    {element:document.getElementById('splash-triangle'),delay:295, duration:1020, opacityOnly:true}
+    {element:document.getElementById('splash-x'),       delay:0,   duration:1590,dy:110,scale:.76},
+    {element:document.getElementById('splash-west'),    delay:120, duration:1730,dy:130,scale:.79},
+    {element:start,                                     delay:240, duration:1790,dy:100,scale:.72,noFade:true},
+    {element:document.getElementById('splash-label'),   delay:540, duration:1430,opacityOnly:true},
+    {element:document.getElementById('splash-triangle'),delay:400, duration:1450,opacityOnly:true}
   ];
 
   const animated=entries.filter(e=>e.element && typeof e.element.animate==='function').map(e=>{
@@ -85,7 +85,7 @@
       Promise.allSettled(animated.map(animation=>animation.finished)).then(hideSplash);
       // A reliable fallback if Safari interrupts an animation while asking
       // the user for camera permission.
-      window.setTimeout(hideSplash,1700);
+      window.setTimeout(hideSplash,2450);
     }
   });
 })();
