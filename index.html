@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="LUX AR Samples">
   <link rel="apple-touch-icon" href="./icon.png?v=1">
   <link rel="icon" type="image/png" href="./icon.png?v=1">
-  <link rel="stylesheet" href="./styles.css?v=3">
+  <link rel="stylesheet" href="./styles.css?v=4">
   <link rel="stylesheet" href="./splash.css?v=4">
 </head>
 <body class="splash-visible">
@@ -41,7 +41,7 @@
         <button class="edge-handle" data-edge="left" aria-label="Drag to adjust left edge"><img src="./ICONS/EXPAND.png" alt="" onerror="this.hidden=true"></button>
       </div>
       <header class="topbar">
-        <div class="brand"><b>LU<span>X</span></b><small>ARCHITECTURAL PRODUCTS</small></div>
+        <div class="brand"><img class="brand-image" src="./LUX%20Logo%20white.png" alt="LUX Architectural Products"></div>
         <span class="top-tag">DIGITAL SAMPLES <span class="top-dot"></span> <span id="mode-label">3D PREVIEW</span></span>
       </header>
       <div class="stage-top-actions">
@@ -49,13 +49,6 @@
         <button id="help" class="icon-button" title="How to use" aria-label="Help"><span class="questionmark">?</span><span>Help</span></button>
       </div>
       <div class="status-pill" id="status" role="status" aria-live="polite">Rotate the 3D view by dragging. Resize using the four handles.</div>
-      <div class="placement-panel" id="placement-panel" hidden>
-        <div class="placement-title">POINT AT A WALL</div>
-        <div class="placement-copy">Stand facing the wall, aim the crosshair where the sample should go, then tap Place.</div>
-        <label for="distance">Wall distance <strong id="distance-value">1.2 m</strong></label>
-        <input id="distance" type="range" min="0.5" max="4" step="0.1" value="1.2">
-        <button id="place" class="primary-button">PLACE ON WALL</button>
-      </div>
       <div class="stage-bottom-actions">
         <button id="start-ar" class="primary-button">START AR <span class="button-icon">↗</span></button>
         <button id="return-preview" class="outline-button" hidden>← 3D PREVIEW</button>
@@ -83,15 +76,16 @@
     <form method="dialog"><button class="dialog-close" aria-label="Close">×</button></form>
     <span class="eyebrow">HOW IT WORKS</span><h2>Design it on your wall.</h2>
     <p><b>3D Preview:</b> Drag anywhere outside the edge controls to orbit around the sample. Drag any of the four circular handles to change the sample size.</p>
-    <p><b>AR on a phone:</b> Tap START AR, allow camera access, stand in front of a wall, aim at it, set your approximate distance, then tap PLACE ON WALL. Walk around to inspect it. Tap REPOSITION to try again.</p>
-    <p>Placement is manually aligned; this prototype does not automatically detect the wall surface. Tracking quality and true scale must be tested on real devices.</p>
+    <p><b>AR on a phone:</b> Tap START AR, point at a wall and move slowly to establish tracking. The white grid is a wall-alignment aid; it estimates a wall from feature points when possible. Tap anywhere to place. Walk around to inspect. Tap REPOSITION to try again.</p>
+    <p>Grid alignment is experimental; on walls without enough trackable features it falls back to a camera-aligned guide. Metric scale comes from 8th Wall tracking but needs device validation.</p>
     <button class="primary-button" onclick="document.getElementById('help-dialog').close()">GOT IT</button>
   </dialog>
   <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/build/three.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/loaders/GLTFLoader.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@8thwall/xrextras@1/dist/xrextras.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js" async crossorigin="anonymous" data-preload-chunks="slam"></script>
-  <script src="./app.js?v=4" defer></script>
+  <script src="./wall-guide.js?v=1" defer></script>
+  <script src="./app.js?v=5" defer></script>
   <script src="./splash.js?v=3" defer></script>
   <!-- Copyright (c) Niantic Spatial, Inc. 8th Wall Engine Binary used under its license.
        https://github.com/8thwall/engine/blob/main/LICENSE -->
