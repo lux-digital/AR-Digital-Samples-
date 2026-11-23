@@ -72,19 +72,29 @@ body.splash-visible{overflow:hidden}
   backdrop-filter:blur(14px);
   box-shadow:0 9px 42px rgba(0,0,0,.17);
 }
-/* The pulse is a faint halo, rather than an opacity change on blurred glass. */
+/* A clearly visible, premium pulse without fading or altering the frosted glass.
+   Breathe the circle by 4.5% and send a glowing ring outward every 2.7s. */
 .lux-splash__circle::after{
   content:"";position:absolute;inset:-2px;border-radius:inherit;
-  border:1px solid rgba(255,255,255,.27);
-  box-shadow:0 0 18px rgba(255,255,255,.18);
+  border:2px solid rgba(255,255,255,.72);
+  box-shadow:0 0 14px rgba(255,255,255,.52),0 0 34px rgba(255,255,255,.28);
   pointer-events:none;opacity:0;
 }
+.lux-splash.is-ready:not(.is-exiting) .lux-splash__circle{
+  animation:lux-splash-breathe 2.7s ease-in-out infinite;
+}
 .lux-splash.is-ready:not(.is-exiting) .lux-splash__circle::after{
-  animation:lux-splash-pulse 3s ease-in-out infinite;
+  animation:lux-splash-pulse 2.7s ease-out infinite;
+}
+@keyframes lux-splash-breathe{
+  0%,100%{transform:scale(1)}
+  48%{transform:scale(1.045)}
 }
 @keyframes lux-splash-pulse{
-  0%,100%{transform:scale(.985);opacity:0}
-  48%{transform:scale(1.075);opacity:.30}
+  0%{transform:scale(1);opacity:.08}
+  36%{transform:scale(1.095);opacity:.78}
+  72%{transform:scale(1.18);opacity:0}
+  100%{transform:scale(1.18);opacity:0}
 }
 .lux-splash__triangle{
   width:47%;height:47%;
