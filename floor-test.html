@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="LUX AR Samples">
   <link rel="apple-touch-icon" href="./icon.png?v=1">
   <link rel="icon" type="image/png" href="./icon.png?v=1">
-  <link rel="stylesheet" href="./styles.css?v=14">
+  <link rel="stylesheet" href="./styles.css?v=15">
   <link rel="stylesheet" href="./splash.css?v=11">
   <style>
     .lux-floor-demo-banner {
@@ -77,6 +77,7 @@
       <div class="stage-bottom-actions">
         <button id="start-ar" class="primary-button">START AR <span class="button-icon">↗</span></button>
         <button id="reposition" class="outline-button" hidden>REPOSITION</button>
+        <button id="depth-toggle" class="outline-button lux-depth-toggle" type="button" hidden aria-pressed="false" title="Try experimental foreground occlusion">DEPTH OFF</button>
         <button id="customize" class="primary-button" hidden>FINISHES</button>
       </div>
     </div>
@@ -102,7 +103,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js" async crossorigin="anonymous" data-preload-chunks="slam"></script>
   <script src="./floor-wall-test.js?v=5" defer></script>
   <script src="./diagnostics.js?v=3" defer></script>
-  <script src="./app.js?v=14" defer></script>
+  <script src="./depth-occlusion.js?v=1" defer></script>
+  <script src="./app.js?v=15" defer></script>
   <script src="./splash.js?v=4" defer></script>
   <!-- Copyright (c) Niantic Spatial, Inc. 8th Wall Engine Binary used under its license.
        https://github.com/8thwall/engine/blob/main/LICENSE -->
