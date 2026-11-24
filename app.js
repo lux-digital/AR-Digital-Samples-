@@ -98,7 +98,7 @@
   if (wallGuide) stageScene.add(wallGuide.group);
   if (floorGuide) stageScene.add(floorGuide.group);
   if(floorTestMode && diag)diag.note('floor-test-mode',{
-    enabled:true,method:'two-floor-points',groundY:0
+    enabled:true,method:'interactive-vertical-plane',groundY:0
   });
   sceneLights.add(new T.HemisphereLight(0xffffff,0x6c6a64,1.75));
   const keyLight = new T.DirectionalLight(0xffffff,2.1);
@@ -126,7 +126,7 @@
     toastUntil=0;
     let message = arRunning ?
       (arPlaced ? (trackingNormal ? 'Drag any edge to resize • walk around to inspect' : 'Move your phone slowly to improve tracking') :
-        (floorTestMode ? 'FLOOR TEST • Mark two points along the base of the real wall' :
+        (floorTestMode ? 'FLOOR TEST • Drag grid to move, rotate, then place the wall' :
         'Align the white grid to your wall, then tap the screen')) :
       'Drag the view to rotate • drag any circular edge handle to resize';
     if (lastToast!==message) {lastToast=message;status.textContent=message;}
@@ -459,13 +459,13 @@
     placement.visible=false;
     if (wallGuide) wallGuide.setActive(true);
     if (floorGuide) floorGuide.setActive(true);
-    if (diag){diag.state('scanning');diag.note('scan-started',{trackingNormal,mode:floorTestMode?'floor-two-point':'seam-and-points'});}
+    if (diag){diag.state('scanning');diag.note('scan-started',{trackingNormal,mode:floorTestMode?'floor-live-plane':'seam-and-points'});}
     stage.classList.add('placing');
     document.body.classList.add('placing');
     $('reposition').hidden=true;
     $('customize').hidden=true;
     tell(floorTestMode?
-      'FLOOR TEST: Aim at the true floor–wall junction and mark two points.' :
+      'FLOOR TEST: Drag the grid to align; rotate with ↻; tap PLACE WALL.' :
       'Scan the floor–wall seam or use two taps to align manually.');
   }
   function placeOnWall(pose) {
@@ -480,7 +480,7 @@
       position:{x:pose.position.x,y:pose.position.y,z:pose.position.z},
       yaw:pose.rotation.y,trackingNormal,
       baselineMeters:pose.baselineMeters||null,
-      mode:floorTestMode?'floor-two-point':'normal'
+      mode:floorTestMode?'floor-live-plane':'normal'
     });
     placement.visible=true;
     placement.updateMatrixWorld(true);
@@ -493,7 +493,7 @@
     document.body.classList.remove('placing');
     $('reposition').hidden=false;
     $('customize').hidden=false;
-    tell(pose.source==='floor-two-point'
+    tell(pose.source==='floor-live-plane'||pose.source==='floor-two-point'
       ? 'Floor-anchored test: walk sideways and check alignment and stability.'
       : pose.source==='confirmed'
       ? 'Seam and 3D wall cues agreed. Check the sample from several angles.'
@@ -501,7 +501,25 @@
           ? 'TEST ONLY: this sample is not aligned to a detected wall.'
           : 'Manual wall alignment placed. Inspect from several angles.'),4500);
   }
+  if(floorGuide){
+    // Pointer events are routed into the interactive world-space grid before
+    // placement. The existing two-dimensional edge handles remain untouched.
+    const isAligning=()=>arRunning&&!arPlaced&&stage.classList.contains('placing');
+    stage.addEventListener('pointerdown',event=>{
+      if(isAligning())floorGuide.pointerDown(event,activeCamera);
+    });
+    stage.addEventListener('pointermove',event=>{
+      if(isAligning())floorGuide.pointerMove(event,activeCamera);
+    });
+    for(const type of ['pointerup','pointercancel','lostpointercapture']){
+      stage.addEventListener(type,event=>{
+        if(isAligning())floorGuide.pointerUp(event);
+      });
+    }
+    floorGuide.setPlacementHandler(pose=>placeOnWall(pose));
+  }
   stage.addEventListener('pointerup',event=>{
+    if(floorGuide)return; // PLACE WALL button replaces two-point taps.
     if (!arRunning||arPlaced||!stage.classList.contains('placing')) return;
     if(event.target.closest('button,a,input'))return;
     const rect=stage.getBoundingClientRect();
@@ -512,7 +530,7 @@
     const guide=floorGuide||wallGuide;
     if(diag)diag.note('placement-tap',{x:Number(x.toFixed(3)),y:Number(y.toFixed(3)),
       result:result&&result.action,trackingNormal,guide:guide&&guide.getDebug(),
-      mode:floorTestMode?'floor-two-point':'original'});
+      mode:floorTestMode?'floor-live-plane':'original'});
     if(result&&result.action==='place') {
       placeOnWall(result.pose);
     }else if(result&&result.action==='aim-down'){
