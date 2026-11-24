@@ -108,7 +108,7 @@
   sceneLights.add(fillLight);
   const keyLight = new T.DirectionalLight(0xffffff,2.1);
   const PREVIEW_LIGHTING={fill:1.75,key:2.1};
-  const AR_LIGHTING={fill:.86,key:1.05};
+  const AR_LIGHTING={fill:.43,key:.55};
   function setSampleLighting(inAR){
     const preset=inAR?AR_LIGHTING:PREVIEW_LIGHTING;
     fillLight.intensity=preset.fill;
@@ -666,12 +666,13 @@
           if(diag){diag.state('camera-running');diag.note('xr-started');}
           xr.renderer.outputEncoding=T.sRGBEncoding;
           xr.renderer.toneMapping=T.ACESFilmicToneMapping;
-          // Old setup (exposure 1.3, fill 1.75, key 2.1) heavily
-          // overexposed lighter finishes. Keep ACES and metallic shading.
-          xr.renderer.toneMappingExposure=.92;
+          // Bring the real coated-metal finish substantially closer to indoor
+          // brightness. Preserve ACES, roughness and directional highlights;
+          // do not flatten or permanently darken the source textures.
+          xr.renderer.toneMappingExposure=.72;
           setSampleLighting(true);
           if(diag)diag.note('ar-lighting',{
-            exposure:.92,hemisphere:AR_LIGHTING.fill,
+            exposure:.72,hemisphere:AR_LIGHTING.fill,
             directional:AR_LIGHTING.key,material:'coated-metal'
           });
           activeScene.add(placement,sceneLights);
