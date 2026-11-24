@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="LUX AR Samples">
   <link rel="apple-touch-icon" href="./icon.png?v=1">
   <link rel="icon" type="image/png" href="./icon.png?v=1">
-  <link rel="stylesheet" href="./styles.css?v=10">
+  <link rel="stylesheet" href="./styles.css?v=11">
   <link rel="stylesheet" href="./splash.css?v=11">
   <style>
     .lux-floor-demo-banner {
@@ -36,7 +36,7 @@
 <body class="splash-visible floor-wall-test-mode">
   <div class="lux-splash" id="lux-splash" role="region" aria-label="West Coast Naturals AR introduction">
     <div class="lux-floor-demo-banner">FLOOR → WALL TEST
-      <small>Two points on the tracked floor · NO automatic seam detection</small>
+      <small>Drag one wall grid into place · rotate · confirm</small>
     </div>
     <img class="lux-splash__image" src="./Heartwood.jpg" alt="" fetchpriority="high" draggable="false">
     <div class="lux-splash__grid-reveal" aria-hidden="true">
@@ -105,17 +105,17 @@
     <form method="dialog"><button class="dialog-close" aria-label="Close">×</button></form>
     <span class="eyebrow">HOW IT WORKS</span><h2>Design it on your wall.</h2>
     <p><b>3D Preview:</b> Drag anywhere outside the edge controls to orbit around the sample. Drag any of the four circular handles to change the sample size.</p>
-    <p><b>Floor → Wall test:</b> Tap START AR. Slowly point at the floor until tracking is ready. Aim at the actual floor–wall junction, tap the first point on the floor, then tap a second point at least 55 cm farther along the same wall base. A vertical 3D grid and LUX sample will appear.</p>
-    <p>This is an experiment using two manual points on 8th Wall's tracked ground plane. It does NOT automatically search for a seam or recognize walls. Move sideways, closer, then look away and back. Use SAVE DIAGNOSTICS to export tracking results.</p>
+    <p><b>Floor → Wall test:</b> Tap START AR, slowly scan the floor until tracking is ready, and a white vertical grid will appear automatically. Drag the grid sideways and forward or back until its bottom edge meets the wall. Drag its circular rotation control left or right until it lines up with the real wall. Then tap PLACE WALL to show the LUX cladding.</p>
+    <p>This experiment uses 8th Wall's tracked floor coordinate system. It does NOT detect the wall automatically. You can see and correct the alignment before placement. After placing, move sideways, closer, and look away and back to test stability. SAVE DIAGNOSTICS exports the results.</p>
     <button class="primary-button" onclick="document.getElementById('help-dialog').close()">GOT IT</button>
   </dialog>
   <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/build/three.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/loaders/GLTFLoader.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@8thwall/xrextras@1/dist/xrextras.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js" async crossorigin="anonymous" data-preload-chunks="slam"></script>
-  <script src="./floor-wall-test.js?v=2" defer></script>
+  <script src="./floor-wall-test.js?v=3" defer></script>
   <script src="./diagnostics.js?v=3" defer></script>
-  <script src="./app.js?v=11" defer></script>
+  <script src="./app.js?v=12" defer></script>
   <script src="./splash.js?v=4" defer></script>
   <!-- Copyright (c) Niantic Spatial, Inc. 8th Wall Engine Binary used under its license.
        https://github.com/8thwall/engine/blob/main/LICENSE -->
