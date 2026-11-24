@@ -496,3 +496,19 @@ body.floor-wall-test-mode .stage.placing .status-pill{display:none!important}
 @media(prefers-reduced-motion:reduce){
   .lux-floor-track-spinner{animation-duration:2s}
 }
+
+
+/* LUX resize controls — two soft-corner outward-facing triangles, following
+   the supplied reference. Geometry and pointer hit areas are unchanged. */
+.edge-handle:before,
+.edge-handle[data-edge="top"]:before,
+.edge-handle[data-edge="bottom"]:before{content:none!important;display:none!important}
+.edge-handle .resize-glyph{
+  width:31px;height:21px;
+  display:block;flex:none;overflow:visible;
+  fill:#fff;pointer-events:none;
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.12));
+}
+.edge-handle[data-edge="top"] .resize-glyph,
+.edge-handle[data-edge="bottom"] .resize-glyph{transform:rotate(90deg)}
+.edge-handle.dragging .resize-glyph{fill:#fff}
