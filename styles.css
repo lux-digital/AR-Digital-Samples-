@@ -374,3 +374,101 @@ body.splash-visible #lux-diag-root{display:none!important}
   .lux-wall-manual-hint{font-size:11px}
   .lux-wall-test-place{min-height:44px;font-size:10px}
 }
+
+
+/* Isolated ?wallTest=1 floor-to-wall experiment.
+   UI sits above the AR camera, and the user can still tap the floor itself. */
+.lux-floor-test-overlay{
+  display:none;
+  position:absolute;
+  inset:0;
+  z-index:9;
+  pointer-events:none;
+  color:#fff;
+  font-family:'DM Sans',Arial,sans-serif;
+  text-align:center;
+}
+body.floor-wall-test-mode .lux-floor-test-overlay.is-active{
+  display:block;
+}
+body.floor-wall-test-mode .stage.placing .crosshair{
+  display:none;
+}
+.lux-floor-test-tag{
+  position:absolute;
+  left:50%;
+  top:calc(190px + env(safe-area-inset-top));
+  transform:translateX(-50%);
+  width:max-content;
+  max-width:90%;
+  border:1px solid rgba(190,255,210,.63);
+  border-radius:20px;
+  padding:5px 12px;
+  background:rgba(8,26,13,.84);
+  box-shadow:0 4px 14px #0006;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:1px;
+  color:#c3ffce;
+}
+.lux-floor-test-instructions{
+  position:absolute;
+  left:50%;
+  top:calc(227px + env(safe-area-inset-top));
+  transform:translateX(-50%);
+  width:min(390px,calc(100% - 36px));
+  border:1px solid #ffffff59;
+  border-radius:12px;
+  padding:12px 14px;
+  background:rgba(14,14,14,.84);
+  -webkit-backdrop-filter:blur(8px);
+  backdrop-filter:blur(8px);
+  font-size:12px;
+  font-weight:700;
+  line-height:1.45;
+  box-shadow:0 7px 20px #0005;
+}
+.lux-floor-test-reset{
+  position:absolute;
+  left:50%;
+  top:calc(304px + env(safe-area-inset-top));
+  transform:translateX(-50%);
+  border:1px solid #ffffff75;
+  border-radius:8px;
+  min-height:35px;
+  padding:8px 13px;
+  background:rgba(15,15,15,.84);
+  color:#fff;
+  letter-spacing:.5px;
+  font-size:10px;
+  font-weight:800;
+  pointer-events:auto;
+  touch-action:manipulation;
+}
+.lux-floor-test-overlay.is-placed .lux-floor-test-reset{
+  display:none;
+}
+.lux-floor-test-footnote{
+  position:absolute;
+  bottom:calc(88px + env(safe-area-inset-bottom));
+  left:50%;
+  transform:translateX(-50%);
+  width:min(410px,calc(100% - 34px));
+  background:rgba(4,5,5,.6);
+  border-radius:9px;
+  padding:8px;
+  font-size:10px;
+  line-height:1.3;
+  color:#eee;
+}
+@media (max-width:550px){
+  .lux-floor-test-tag{top:calc(179px + env(safe-area-inset-top));font-size:9px}
+  .lux-floor-test-instructions{top:calc(215px + env(safe-area-inset-top));font-size:11px}
+  .lux-floor-test-reset{top:calc(294px + env(safe-area-inset-top))}
+  .lux-floor-test-footnote{bottom:calc(87px + env(safe-area-inset-bottom))}
+}
+@media (max-height:670px){
+  .lux-floor-test-tag{top:calc(155px + env(safe-area-inset-top))}
+  .lux-floor-test-instructions{top:calc(188px + env(safe-area-inset-top))}
+  .lux-floor-test-reset{top:calc(263px + env(safe-area-inset-top))}
+}
