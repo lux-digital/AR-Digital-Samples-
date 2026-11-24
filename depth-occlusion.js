@@ -259,6 +259,12 @@ window.createLuxDepthOcclusion=function(THREE,opts={}){
   }
   function start(){
     if(enabled){enabled=false;clearMask();updateButton();note('depth-disabled',{});return;}
+    // Avoid downloading/reinitializing the same model when testing ON/OFF.
+    if(worker&&ready){
+      enabled=true;failed=false;clearMask();updateButton();
+      note('depth-resumed',{cachedModel:true});
+      return;
+    }
     enabled=true;failed=false;ready=false;hasMask=false;lastError='';
     resetWorker();
     enabled=true;modelStart=performance.now();
@@ -276,9 +282,13 @@ window.createLuxDepthOcclusion=function(THREE,opts={}){
     }catch(error){fail('worker',error&&error.message||String(error));}
   }
   button.addEventListener('click',start);
-  function onFrame(camera,renderer,placement,bounds){
+  function onFrame(camera,renderer,placement,bounds,trackingOk=true){
     currentCamera=camera;
     viewport(renderer);
+    if(!trackingOk){
+      uActive.value=0; // Never trust stale masks while XR8 is LIMITED.
+      return;
+    }
     if(!enabled||!ready||!camera||!placement||!video)return;
     const now=performance.now();
     if(lastAccepted&&(!closeToPose(lastAccepted.pose,poseOf(camera))||
