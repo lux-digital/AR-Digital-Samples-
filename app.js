@@ -8,6 +8,10 @@
 
   const T = window.THREE;
   const diag = window.luxDiagnostics || null;
+  // Only the explicit ?wallTest=1 link changes wall placement. The ordinary
+  // live AR experience remains unchanged while this experiment is evaluated.
+  const floorTestMode=new URLSearchParams(window.location.search).get('wallTest')==='1';
+  if(floorTestMode)document.body.classList.add('floor-wall-test-mode');
   const $ = (id) => document.getElementById(id);
   const stage = $('stage');
   const previewCanvas = $('preview');
@@ -81,9 +85,15 @@
                     new T.MeshStandardMaterial({color:0x302f2b,roughness:.74,metalness:.15})];
   placement.add(surfaceRoot, trimRoot);
   stageScene.add(placement, sceneLights);
-  const wallGuide=typeof window.createLuxWallGuide==='function'
+  const wallGuide=!floorTestMode&&typeof window.createLuxWallGuide==='function'
     ? window.createLuxWallGuide(T) : null;
+  const floorGuide=floorTestMode&&typeof window.createLuxFloorWallTest==='function'
+    ? window.createLuxFloorWallTest(T) : null;
   if (wallGuide) stageScene.add(wallGuide.group);
+  if (floorGuide) stageScene.add(floorGuide.group);
+  if(floorTestMode && diag)diag.note('floor-test-mode',{
+    enabled:true,method:'two-floor-points',groundY:0
+  });
   sceneLights.add(new T.HemisphereLight(0xffffff,0x6c6a64,1.75));
   const keyLight = new T.DirectionalLight(0xffffff,2.1);
   keyLight.position.set(-3,4,7);
@@ -109,7 +119,9 @@
     if (toastUntil && performance.now()<toastUntil) return;
     toastUntil=0;
     let message = arRunning ?
-      (arPlaced ? (trackingNormal ? 'Drag any edge to resize • walk around to inspect' : 'Move your phone slowly to improve tracking') : 'Align the white grid to your wall, then tap the screen') :
+      (arPlaced ? (trackingNormal ? 'Drag any edge to resize • walk around to inspect' : 'Move your phone slowly to improve tracking') :
+        (floorTestMode ? 'FLOOR TEST • Mark two points along the base of the real wall' :
+        'Align the white grid to your wall, then tap the screen')) :
       'Drag the view to rotate • drag any circular edge handle to resize';
     if (lastToast!==message) {lastToast=message;status.textContent=message;}
   }
@@ -440,12 +452,15 @@
     arPlaced=false;
     placement.visible=false;
     if (wallGuide) wallGuide.setActive(true);
-    if (diag){diag.state('scanning');diag.note('scan-started',{trackingNormal});}
+    if (floorGuide) floorGuide.setActive(true);
+    if (diag){diag.state('scanning');diag.note('scan-started',{trackingNormal,mode:floorTestMode?'floor-two-point':'seam-and-points'});}
     stage.classList.add('placing');
     document.body.classList.add('placing');
     $('reposition').hidden=true;
     $('customize').hidden=true;
-    tell('Scan the floor–wall seam or use two taps to align manually.');
+    tell(floorTestMode?
+      'FLOOR TEST: Aim at the true floor–wall junction and mark two points.' :
+      'Scan the floor–wall seam or use two taps to align manually.');
   }
   function placeOnWall(pose) {
     if (!arRunning||arPlaced||!pose) return;
@@ -457,7 +472,9 @@
       source:pose.source,detected:!!pose.detected,
       confidence:pose.confidence,
       position:{x:pose.position.x,y:pose.position.y,z:pose.position.z},
-      yaw:pose.rotation.y,trackingNormal
+      yaw:pose.rotation.y,trackingNormal,
+      baselineMeters:pose.baselineMeters||null,
+      mode:floorTestMode?'floor-two-point':'normal'
     });
     placement.visible=true;
     placement.updateMatrixWorld(true);
@@ -465,11 +482,14 @@
     arPlaced=true;
     if(diag)diag.state('placed');
     if(wallGuide)wallGuide.setActive(false);
+    if(floorGuide)floorGuide.setActive(false);
     stage.classList.remove('placing');
     document.body.classList.remove('placing');
     $('reposition').hidden=false;
     $('customize').hidden=false;
-    tell(pose.source==='confirmed'
+    tell(pose.source==='floor-two-point'
+      ? 'Floor-anchored test: walk sideways and check alignment and stability.'
+      : pose.source==='confirmed'
       ? 'Seam and 3D wall cues agreed. Check the sample from several angles.'
       : (pose.source==='approximate-test'
           ? 'TEST ONLY: this sample is not aligned to a detected wall.'
@@ -481,17 +501,20 @@
     const rect=stage.getBoundingClientRect();
     const x=(event.clientX-rect.left)/rect.width;
     const y=(event.clientY-rect.top)/rect.height;
-    const result=wallGuide?wallGuide.tap(activeCamera,x,y):null;
+    const result=floorGuide?floorGuide.tap(activeCamera,x,y):
+      (wallGuide?wallGuide.tap(activeCamera,x,y):null);
+    const guide=floorGuide||wallGuide;
     if(diag)diag.note('placement-tap',{x:Number(x.toFixed(3)),y:Number(y.toFixed(3)),
-      result:result&&result.action,trackingNormal,guide:wallGuide&&wallGuide.getDebug()});
+      result:result&&result.action,trackingNormal,guide:guide&&guide.getDebug(),
+      mode:floorTestMode?'floor-two-point':'original'});
     if(result&&result.action==='place') {
       placeOnWall(result.pose);
     }else if(result&&result.action==='aim-down'){
-      tell('Aim lower at the floor next to the wall to set its base.',2800);
+      tell('Aim LOWER and tap where the wall meets the actual floor.',3200);
     }else if(result&&result.action==='first'){
       tell('First end marked. Tap the other end of the same floor–wall edge.',2200);
     }else if(result&&result.action==='wait'){
-      tell('Move your phone slowly until tracking initializes.',2300);
+      tell('Move your phone slowly until ground tracking stabilizes.',2300);
     }else if(result&&result.action==='retry'){
       tell('Try selecting two points farther apart on the floor edge.',2800);
     }
@@ -515,7 +538,7 @@
     document.body.classList.toggle('ar-active',ar);
     stage.classList.toggle('placing',ar);
     document.body.classList.toggle('placing',ar);
-    $('mode-label').textContent=ar?'LIVE AR':'3D PREVIEW';
+    $('mode-label').textContent=ar?(floorTestMode?'FLOOR TEST':'LIVE AR'):'3D PREVIEW';
     $('start-ar').hidden=ar;
     $('return-preview').hidden=!ar;
     $('reposition').hidden=true;
@@ -540,7 +563,10 @@
       enableLighting:false,enableWorldPoints:true
     });
     let pixelModule=null;
-    if(XR8.CameraPixelArray && typeof XR8.CameraPixelArray.pipelineModule==='function'){
+    // The experimental floor wall runs on XR8's ground coordinate system;
+    // disable camera-pixel processing entirely in that mode.
+    if(!floorTestMode&&XR8.CameraPixelArray &&
+       typeof XR8.CameraPixelArray.pipelineModule==='function'){
       try{
         pixelModule=XR8.CameraPixelArray.pipelineModule({
           luminance:true,width:112,height:176
@@ -595,6 +621,7 @@
           xr.renderer.toneMappingExposure=1.3;
           activeScene.add(placement,sceneLights);
           if (wallGuide) activeScene.add(wallGuide.group);
+          if (floorGuide) activeScene.add(floorGuide.group);
           // 8th Wall's official three.js sample synchronizes the initial
           // world-tracking origin to the same XR scene camera.
           XR8.XrController.updateCameraProjectionMatrix({
@@ -615,7 +642,10 @@
             if(pixelResult&&wallGuide.samplePixels)wallGuide.samplePixels(pixelResult);
             wallGuide.update(activeCamera,reality&&reality.worldPoints,trackingNormal);
           }
-          if(diag)diag.sample(reality,wallGuide,activeCamera);
+          // Keep the floor reference and jump diagnostics alive after placement
+          // rather than freezing the entire guide's monitoring.
+          if(floorGuide)floorGuide.update(activeCamera,trackingNormal);
+          if(diag)diag.sample(reality,floorGuide||wallGuide,activeCamera);
           updateHandles();
           restoreStatus();
         },
@@ -694,6 +724,11 @@
     if (wallGuide) {
       wallGuide.setActive(false);
       stageScene.add(wallGuide.group);
+    }
+    if (floorGuide) {
+      floorGuide.setActive(false);
+      stageScene.add(floorGuide.group);
+      floorGuide.group.visible=false;
     }
     setMode(false);
     if (!previewRenderer) createPreviewRenderer();
