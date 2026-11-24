@@ -16,59 +16,70 @@ window.createLuxFloorWallTest=function(THREE){
   wall.name='lux-adjustable-vertical-grid';
   group.add(wall);
 
-  const gridMaterial=new THREE.LineBasicMaterial({
-    color:0xffffff,transparent:true,opacity:.66,
-    depthTest:false,depthWrite:false
-  });
-  const edgeMaterial=new THREE.LineBasicMaterial({
-    color:0xffffff,transparent:true,opacity:.98,
-    depthTest:false,depthWrite:false
-  });
-  const floorMaterial=new THREE.LineBasicMaterial({
-    color:0xc9ffd9,transparent:true,opacity:.95,
-    depthTest:false,depthWrite:false
-  });
-  const height=2.32, width=2.8, step=.23;
-  const gridPoints=[],edgePoints=[],basePoints=[];
-  for(let x=-width/2+step;x<width/2;x+=step){
-    gridPoints.push(new THREE.Vector3(x,.015,0),new THREE.Vector3(x,height,0));
+  // Dense ~12cm cells; independent dark outline and bright core per line.
+  // WebGL lineWidth is ignored on iOS, so use inexpensive ribbon meshes
+  // instead of line primitives. They remain legible on white OR dark walls.
+  const height=2.32,width=2.8,step=.12;
+  const gridSegments=[],borderSegments=[],floorSegments=[];
+  for(let x=-width/2+step;x<width/2-.001;x+=step){
+    gridSegments.push([x,.015,x,height]);
   }
-  for(let y=step;y<height;y+=step){
-    gridPoints.push(new THREE.Vector3(-width/2,y,0),new THREE.Vector3(width/2,y,0));
+  for(let y=step;y<height-.001;y+=step){
+    gridSegments.push([-width/2,y,width/2,y]);
   }
-  edgePoints.push(
-    new THREE.Vector3(-width/2,.015,0),new THREE.Vector3(width/2,.015,0),
-    new THREE.Vector3(width/2,.015,0),new THREE.Vector3(width/2,height,0),
-    new THREE.Vector3(width/2,height,0),new THREE.Vector3(-width/2,height,0),
-    new THREE.Vector3(-width/2,height,0),new THREE.Vector3(-width/2,.015,0)
+  borderSegments.push(
+    [-width/2,.012,width/2,.012],
+    [width/2,.012,width/2,height],
+    [width/2,height,-width/2,height],
+    [-width/2,height,-width/2,.012]
   );
-  // A pale floor line makes the wall's contact point easy to judge.
-  basePoints.push(
-    new THREE.Vector3(-width/2,.025,.012),
-    new THREE.Vector3(width/2,.025,.012)
-  );
-  function addSegments(points,material){
-    const geometry=new THREE.BufferGeometry().setFromPoints(points);
-    const line=new THREE.LineSegments(geometry,material);
-    line.frustumCulled=false;
-    line.renderOrder=12;
-    wall.add(line);
-    return line;
+  floorSegments.push([-width/2,.022,width/2,.022]);
+  function ribbonMesh(segments,thickness,z,colour,opacity,renderOrder){
+    const xyz=[];
+    const half=thickness*.5;
+    for(const [ax,ay,bx,by] of segments){
+      const dx=bx-ax,dy=by-ay;
+      const length=Math.hypot(dx,dy);
+      if(length<.00001)continue;
+      const nx=-dy/length*half,ny=dx/length*half;
+      const a=[ax+nx,ay+ny,z], b=[ax-nx,ay-ny,z];
+      const c=[bx+nx,by+ny,z], d=[bx-nx,by-ny,z];
+      xyz.push(...a,...b,...c,...c,...b,...d);
+    }
+    const geometry=new THREE.BufferGeometry();
+    geometry.setAttribute('position',new THREE.Float32BufferAttribute(xyz,3));
+    geometry.computeBoundingSphere();
+    const material=new THREE.MeshBasicMaterial({
+      color:colour,transparent:true,opacity,
+      depthTest:false,depthWrite:false,side:THREE.DoubleSide,
+      toneMapped:false
+    });
+    const mesh=new THREE.Mesh(geometry,material);
+    mesh.frustumCulled=false;mesh.renderOrder=renderOrder;
+    wall.add(mesh);
+    return mesh;
   }
-  addSegments(gridPoints,gridMaterial);
-  addSegments(edgePoints,edgeMaterial);
-  addSegments(basePoints,floorMaterial);
+  // Soft dark outline separates the white grid from bright walls.
+  ribbonMesh(gridSegments,.010,0,0x090c0f,.78,10);
+  ribbonMesh(gridSegments,.004,.001,0xffffff,.98,11);
+  ribbonMesh(borderSegments,.017,.002,0x090c0f,.94,12);
+  ribbonMesh(borderSegments,.008,.003,0xffffff,1,13);
+  ribbonMesh(floorSegments,.020,.004,0x060c09,.92,14);
+  ribbonMesh(floorSegments,.009,.005,0xc5ffd6,1,15);
   group.visible=false;
 
   const overlay=document.createElement('div');
   overlay.className='lux-floor-test-overlay';
   overlay.setAttribute('aria-label','Live vertical wall alignment');
   overlay.innerHTML=
-    '<div class="lux-floor-test-tag">LIVE WALL ALIGNMENT</div>'+
-    '<div class="lux-floor-test-instructions" role="status" aria-live="polite">'+
-      'Scan the floor slowly until tracking is ready'+
+    '<div class="lux-floor-track" role="status" aria-live="polite">'+
+      '<span class="lux-floor-track-spinner" aria-hidden="true"></span>'+
+      '<div class="lux-floor-track-copy">'+
+        '<strong class="lux-floor-track-title">Finding floor</strong>'+
+        '<span class="lux-floor-track-detail">Move your phone slowly across the floor</span>'+
+      '</div>'+
     '</div>'+
-    '<button class="lux-floor-test-reset" type="button" aria-label="Reset wall alignment">RESET ALIGNMENT</button>'+
+    '<div class="lux-floor-test-instructions">Drag grid to move · ↻ to rotate</div>'+
     '<button class="lux-floor-test-rotate" type="button" aria-label="Drag left or right to rotate the vertical wall">'+
       '<svg viewBox="0 0 96 96" aria-hidden="true">'+
         '<path d="M19 48a29 29 0 0 1 49-21 M77 48a29 29 0 0 1-49 21" '+
@@ -77,15 +88,30 @@ window.createLuxFloorWallTest=function(THREE){
           'fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>'+
       '</svg>'+
     '</button>'+
-    '<div class="lux-floor-test-footnote">'+
-      'DRAG GRID to position · DRAG ↻ to rotate'+
-    '</div>'+
-    '<button class="lux-floor-test-place" type="button" disabled>PLACE WALL</button>';
+    '<div class="lux-floor-test-actions">'+
+      '<button class="lux-floor-test-reset" type="button" aria-label="Reset wall alignment">RESET</button>'+
+      '<button class="lux-floor-test-place" type="button" disabled>PLACE WALL</button>'+
+    '</div>';
   stage.appendChild(overlay);
   const message=overlay.querySelector('.lux-floor-test-instructions');
+  const trackTitle=overlay.querySelector('.lux-floor-track-title');
+  const trackDetail=overlay.querySelector('.lux-floor-track-detail');
   const rotateButton=overlay.querySelector('.lux-floor-test-rotate');
   const resetButton=overlay.querySelector('.lux-floor-test-reset');
   const placeButton=overlay.querySelector('.lux-floor-test-place');
+  function refreshUI(){
+    const ready=active&&initialized&&trackingNormal;
+    overlay.classList.toggle('is-ready',ready);
+    overlay.classList.toggle('is-waiting',active&&!ready);
+    placeButton.disabled=!ready;
+    if(!initialized){
+      trackTitle.textContent='Finding floor';
+      trackDetail.textContent='Move your phone slowly across the floor';
+    }else if(!trackingNormal){
+      trackTitle.textContent='Tracking paused';
+      trackDetail.textContent='Move slowly until tracking recovers';
+    }
+  }
 
   const raycaster=new THREE.Raycaster(),ndc=new THREE.Vector2();
   const temp=new THREE.Vector3(),forward=new THREE.Vector3();
@@ -103,8 +129,7 @@ window.createLuxFloorWallTest=function(THREE){
     if(value!==lastMessage){lastMessage=value;message.textContent=value;}
   }
   function isReady(){
-    return active && initialized && trackingNormal &&
-      normalSince && performance.now()-normalSince>=600;
+    return active && initialized && trackingNormal;
   }
   function floorHit(camera,x,y){
     if(!camera)return null;
@@ -139,13 +164,13 @@ window.createLuxFloorWallTest=function(THREE){
     wall.rotation.y=Math.atan2(toCamera.x,toCamera.z);
     initialized=true;
     group.visible=true;
-    placeButton.disabled=false;
     rotateButton.style.display='block';
+    refreshUI();
     note('floor-live-initialized',{
       x:hit.x,z:hit.z,yaw:wall.rotation.y,groundY:0,
       source:'ground-ray-or-forward'
     });
-    setMessage('Drag GRID to position · Drag ↻ to rotate · PLACE WALL');
+    setMessage('Drag grid to move · ↻ to rotate');
   }
   function resetAlignment(){
     initialized=false;adjusted=false;pointer=null;lastCameraForPlace=null;
@@ -169,14 +194,15 @@ window.createLuxFloorWallTest=function(THREE){
     group.visible=active&&initialized;
     overlay.classList.toggle('is-active',active);
     overlay.classList.toggle('is-placed',placed);
+    refreshUI();
   }
   resetButton.addEventListener('click',e=>{
     e.preventDefault();e.stopPropagation();
     if(!active)return;
     resetAlignment();
-    if(isReady()&&lastCameraForPlace)initialize(lastCameraForPlace);
+    refreshUI();
     note('floor-live-reset',{});
-    setMessage('Move phone slowly; the grid will reappear on the tracked floor');
+    setMessage('Drag grid to move · ↻ to rotate');
   });
 
   // The plane remains exactly vertical. Dragging the screen changes only its
@@ -268,7 +294,7 @@ window.createLuxFloorWallTest=function(THREE){
     };
     placed=true;active=false;
     group.visible=false; // LUX cladding replaces the alignment grid.
-    overlay.classList.remove('is-active');
+    overlay.classList.remove('is-active','is-ready','is-waiting');
     overlay.classList.add('is-placed');
     note('floor-live-placed',{
       x:pose.position.x,y:pose.position.y,z:pose.position.z,
@@ -308,7 +334,10 @@ window.createLuxFloorWallTest=function(THREE){
     }
     if(!active)return;
     lastCameraForPlace=camera||lastCameraForPlace;
-    if(trackingNormal&&now-normalSince>=600)initialize(camera);
+    // 8th Wall already declares NORMAL when SLAM is initialized.
+    // Don't add another arbitrary 600ms delay before showing the grid.
+    if(trackingNormal&&!initialized)initialize(camera);
+    refreshUI();
     // Rotate button follows the projected base of the world-space wall.
     if(initialized&&camera){
       const base=wall.position.clone().setY(.02).project(camera);
@@ -323,9 +352,7 @@ window.createLuxFloorWallTest=function(THREE){
     }
     if(now-lastMessageAt>1350){
       lastMessageAt=now;
-      if(!trackingNormal)setMessage('TRACKING LIMITED · Scan the floor slowly');
-      else if(now-normalSince<600)setMessage('Floor tracking stabilizing…');
-      else setMessage('DRAG grid to move · DRAG ↻ to rotate · PLACE WALL');
+      if(initialized&&trackingNormal)setMessage('Drag grid to move · ↻ to rotate');
     }
   }
   function getDebug(){
@@ -342,7 +369,7 @@ window.createLuxFloorWallTest=function(THREE){
   function stop(){
     active=false;placed=false;trackingNormal=false;normalSince=0;
     resetAlignment();
-    overlay.classList.remove('is-active','is-placed');
+    overlay.classList.remove('is-active','is-placed','is-ready','is-waiting');
   }
   return{
     group,setActive,update,getDebug,floorHit,
