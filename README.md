@@ -25,21 +25,20 @@ This is a static website. No npm installation, backend or Adobe Aero account is 
 
 **Status:** The interface, rendering logic and AR integration are committed, and app.js passes a JavaScript syntax check. These have NOT been visually tested or validated on a real AR device yet. This is a development prototype, not production-ready wall recognition or accurately verified tracking.
 
-## Isolated Floor → Wall experiment (test link)
+## Isolated Floor → Wall experiment (existing test page)
 
-**Standalone test URL:** `https://lux-digital.github.io/AR-Digital-Samples-/floor-test.html?v=20`.
+**Test URL:** `https://lux-digital.github.io/AR-Digital-Samples-/floor-test.html`.
 
-This dedicated page displays **FLOOR → WALL TEST** on both the startup screen and AR view, explicitly forces the floor test, and does **not load `wall-guide.js`**. The earlier `?wallTest=1` URL is retained as a compatibility shortcut, but use the standalone page for testing.
-
-This mode is opt-in: the ordinary URL continues to use the original experimental seam/point-cloud placement. The new `floor-wall-test.js` module **does not try to recognize walls automatically**. It uses 8th Wall's absolute-scale world tracking, in which the horizontal floor is **Y=0**. Two user-selected floor locations establish a line in that tracked ground plane, and a truly vertical wall plane is erected through them. The finished grid and model remain at world-fixed coordinates rather than tracking the camera.
+This opt-in page does **not load the original automatic seam detector**. It now uses one adjustable, live vertical grid, positioned in 8th Wall's tracked horizontal Y=0 world coordinates. It does not claim automatic wall recognition.
 
 **Testing on a phone:**
-1. Load the test URL, tap START AR, grant the camera permission, and slowly scan the floor until tracking initializes.
-2. Aim at the actual floor–wall junction. **Tap one end of the wall's base**, then tap a **second point at least 55 cm farther along the same wall base**. Avoid tapping the raised top of a baseboard, trim or panel — it isn't at floor height.
-3. The reference plane turns into a world-space green grid, with white line between the two floor markers, and places the cladding vertically. Walk **sideways**, closer, farther, and briefly look away to check whether alignment and tracking remain stable.
-4. Use REPOSITION to try another pair of floor points; CLEAR POINTS resets an incomplete pair. Tap SAVE DIAGNOSTICS and export a JSON report so tracking statuses and unusual camera-pose jumps can be evaluated.
+1. Tap START AR, grant camera permission, and scan the floor until tracking is normal. A white world-space vertical grid appears.
+2. **Drag the grid** to move it left/right and closer/farther until the bottom edge meets the real wall.
+3. **Drag the circular rotate control** left or right to align the plane angle with the real wall.
+4. Tap **PLACE WALL** to replace the grid with the LUX sample. Then walk sideways, closer, and farther away to evaluate stability.
+5. Use **REPOSITION** to realign, or **RESET ALIGNMENT** before placement to start over. **SAVE DIAGNOSTICS** exports camera tracking and plane adjustments.
 
-The test bypasses `wall-guide.js` camera-image seam detection, RANSAC point-cloud wall fitting, and camera-pixel pipeline processing. It does **not** prove automatic wall detection; it separates vertical alignment from 8th Wall world tracking to establish a baseline. The floor estimate can still drift or reset. No additional paid service, app install, or model changes were introduced.
+No extra app, subscription, manual two-point placement, camera-pixel seam detection, or model changes are involved. The original main page (`index.html`) is kept unchanged. The AR engine can still drift or reset; manual alignment can compensate for an incorrect plane angle but cannot correct a tracking reset.
 
 ## Test 11: tracking failure fix and visible manual controls
 
