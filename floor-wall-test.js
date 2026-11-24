@@ -89,7 +89,6 @@ window.createLuxFloorWallTest=function(THREE){
       '</svg>'+
     '</button>'+
     '<div class="lux-floor-test-actions">'+
-      '<button class="lux-floor-test-reset" type="button" aria-label="Reset wall alignment">RESET</button>'+
       '<button class="lux-floor-test-place" type="button" disabled>PLACE WALL</button>'+
     '</div>';
   stage.appendChild(overlay);
@@ -97,7 +96,6 @@ window.createLuxFloorWallTest=function(THREE){
   const trackTitle=overlay.querySelector('.lux-floor-track-title');
   const trackDetail=overlay.querySelector('.lux-floor-track-detail');
   const rotateButton=overlay.querySelector('.lux-floor-test-rotate');
-  const resetButton=overlay.querySelector('.lux-floor-test-reset');
   const placeButton=overlay.querySelector('.lux-floor-test-place');
   function refreshUI(){
     const ready=active&&initialized&&trackingNormal;
@@ -197,14 +195,6 @@ window.createLuxFloorWallTest=function(THREE){
     overlay.classList.toggle('is-placed',placed);
     refreshUI();
   }
-  resetButton.addEventListener('click',e=>{
-    e.preventDefault();e.stopPropagation();
-    if(!active)return;
-    resetAlignment();
-    refreshUI();
-    note('floor-live-reset',{});
-    setMessage('Drag grid to move · ↻ to rotate');
-  });
 
   // The plane remains exactly vertical. Dragging the screen changes only its
   // XZ floor position; the dedicated rotation handle changes only yaw.
