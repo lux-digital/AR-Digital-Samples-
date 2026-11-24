@@ -96,6 +96,7 @@ window.createLuxFloorWallTest=function(THREE){
       note('floor-test-started',{method:'two-floor-taps',groundY:0});
     }
     overlay.classList.toggle('is-active',active||placed);
+    overlay.classList.toggle('is-placed',placed);
     group.visible=active||placed;
     reticle.visible=false;
   }
@@ -103,6 +104,7 @@ window.createLuxFloorWallTest=function(THREE){
     e.preventDefault();e.stopPropagation();
     hideGuides();active=true;
     overlay.classList.add('is-active');
+    overlay.classList.remove('is-placed');
     group.visible=true;
     note('floor-test-reset',{});
     setMessage(trackingNormal?'Tap first point on the wall’s TRUE floor junction':
@@ -197,6 +199,7 @@ window.createLuxFloorWallTest=function(THREE){
     secondDot.position.copy(p).setY(.035);secondDot.visible=true;
     const pose=makePlane(camera);
     placed=true;active=false;reticle.visible=false;
+    overlay.classList.add('is-placed');
     setMessage('FLOOR-BASED WALL PLACED · Walk around and check alignment.');
     note('floor-test-point',{index:2,x:p.x,y:0,z:p.z});
     note('floor-test-plane',{
@@ -264,6 +267,11 @@ window.createLuxFloorWallTest=function(THREE){
       cameraFrames:0,seamFrames:0
     };
   }
-  return{group,setActive,tap,update,getDebug,floorHit};
+  function stop(){
+    active=false;hideGuides();trackingNormal=false;normalSince=0;
+    group.visible=false;
+    overlay.classList.remove('is-active','is-placed');
+  }
+  return{group,setActive,tap,update,getDebug,floorHit,stop};
 };
 })();
