@@ -714,7 +714,7 @@
           // rather than freezing the entire guide's monitoring.
           if(floorGuide)floorGuide.update(activeCamera,trackingNormal);
           if(depthOcclusion&&arPlaced){
-            depthOcclusion.onFrame(activeCamera,arRenderer,placement,bounds);
+            depthOcclusion.onFrame(activeCamera,arRenderer,placement,bounds,trackingNormal);
           }
           if(diag)diag.sample(reality,floorGuide||wallGuide,activeCamera);
           updateHandles();
