@@ -380,8 +380,21 @@ body.splash-visible #lux-diag-root{display:none!important}
    The original AR entry page is unaffected. */
 body.floor-wall-test-mode.ar-active #stage>.lux-floor-demo-banner,
 body.floor-wall-test-mode.placing .topbar .top-tag,
-body.floor-wall-test-mode.placing .stage-top-actions,
-body.floor-wall-test-mode.placing .lux-diag-fab{display:none!important}
+body.floor-wall-test-mode.placing .stage-top-actions{display:none!important}
+/* The diagnostic export remains accessible while waiting for SLAM, without
+   covering the camera with a full-width text button. */
+body.floor-wall-test-mode.placing .lux-diag-fab{
+  top:calc(24px + env(safe-area-inset-top));
+  right:max(18px,env(safe-area-inset-right));
+  width:37px;height:37px;min-height:37px;
+  padding:0;border-radius:50%;
+  font-size:0;line-height:0;
+  display:flex;align-items:center;justify-content:center;
+  opacity:.85;
+}
+body.floor-wall-test-mode.placing .lux-diag-fab:before{
+  margin:0;font-size:20px;line-height:1;
+}
 body.floor-wall-test-mode.placing .brand-image{
   width:clamp(95px,25vw,124px);
 }
