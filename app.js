@@ -87,8 +87,10 @@
   const surfaceRoot = new T.Group();
   const trimRoot = new T.Group();
   const sceneLights = new T.Group();
-  const trimMats = [new T.MeshStandardMaterial({color:selectedFinish.tone,roughness:.66,metalness:.18}),
-                    new T.MeshStandardMaterial({color:0x302f2b,roughness:.74,metalness:.15})];
+  // Coated metal trim uses the selected finish's texture, not a flat tone.
+  // The return is only slightly shaded to keep the fold visible.
+  const trimMats = [new T.MeshStandardMaterial({color:0xffffff,roughness:.62,metalness:.16}),
+                    new T.MeshStandardMaterial({color:0xdcdcdc,roughness:.68,metalness:.16})];
   placement.add(surfaceRoot, trimRoot);
   stageScene.add(placement, sceneLights);
   const wallGuide=!floorTestMode&&typeof window.createLuxWallGuide==='function'
@@ -100,8 +102,18 @@
   if(floorTestMode && diag)diag.note('floor-test-mode',{
     enabled:true,method:'interactive-vertical-plane',groundY:0
   });
-  sceneLights.add(new T.HemisphereLight(0xffffff,0x6c6a64,1.75));
+  // Preserve the original polished 3D preview. AR needs materially lower
+  // lighting so sample colours aren't washed out over the live camera image.
+  const fillLight = new T.HemisphereLight(0xffffff,0x6c6a64,1.75);
+  sceneLights.add(fillLight);
   const keyLight = new T.DirectionalLight(0xffffff,2.1);
+  const PREVIEW_LIGHTING={fill:1.75,key:2.1};
+  const AR_LIGHTING={fill:.86,key:1.05};
+  function setSampleLighting(inAR){
+    const preset=inAR?AR_LIGHTING:PREVIEW_LIGHTING;
+    fillLight.intensity=preset.fill;
+    keyLight.intensity=preset.key;
+  }
   keyLight.position.set(-3,4,7);
   sceneLights.add(keyLight);
 
@@ -158,7 +170,15 @@
     }
     updateDimensions();
   }
-  function updateTrimColor() {trimMats[0].color.setHex(selectedFinish.tone);}
+  function updateTrimMaterial(texture) {
+    // Dedicated TRIM texture when supplied; otherwise the currently selected
+    // profile's finish texture (e.g. Fawn) on every edge and return lip.
+    trimMats[0].map=texture;
+    trimMats[1].map=texture;
+    trimMats[0].color.setHex(0xffffff);
+    trimMats[1].color.setHex(0xdcdcdc);
+    trimMats.forEach(mat=>{mat.needsUpdate=true;});
+  }
   function setBounds(edge,value) {
     if (edge==='left') bounds.left=Math.min(bounds.right-MIN_EDGE,value);
     if (edge==='right') bounds.right=Math.max(bounds.left+MIN_EDGE,value);
@@ -226,9 +246,13 @@
     const token=++lastModelToken;
     tell('Loading '+selectedProfile.name.toLowerCase()+'…');
     const profile=selectedProfile, finish=selectedFinish;
-    const [entries,texture]=await Promise.all([
+    const trimTextureUrl=finish.trim
+      ? relative('Textures/'+finish.folder+'/'+finish.trim)
+      : finishPath(finish,profile.prefix);
+    const [entries,texture,trimTexture]=await Promise.all([
       rawModel(profile.file),
-      getTexture(finishPath(finish,profile.prefix))
+      getTexture(finishPath(finish,profile.prefix)),
+      getTexture(trimTextureUrl)
     ]);
     if (token!==lastModelToken) return;
     while (surfaceRoot.children.length) {
@@ -243,8 +267,10 @@
         if (source.map) {
           material.map=texture;
           material.color.set(0xffffff);
-          material.metalness=.07;
-          material.roughness=.8;
+          // Painted metal: retain subtle highlights without an uncalibrated
+          // mirror-like or artificially flat appearance.
+          material.metalness=.16;
+          material.roughness=.64;
         }
         material.side=T.DoubleSide;
         applyCropShader(material);
@@ -254,7 +280,7 @@
       mesh.frustumCulled=false;
       surfaceRoot.add(mesh);
     }
-    updateTrimColor();
+    updateTrimMaterial(trimTexture);
     restoreStatus();
   }
   function loadSelectedSafe() {
@@ -423,8 +449,7 @@
     }
     tell('Sample reset',1800);
   }
-  $('reset').onclick=resetSize;
-  $('help').onclick=()=>$('help-dialog').showModal();
+  // Reset and Help are intentionally absent from the streamlined AR interface.
   function closeArPanel() {
     document.querySelector('.config-panel').classList.remove('panel-open');
     document.body.classList.remove('ar-panel-open');
@@ -564,8 +589,7 @@
     document.body.classList.toggle('placing',ar);
     $('mode-label').textContent=ar?(floorTestMode?'FLOOR TEST':'LIVE AR'):'3D PREVIEW';
     $('start-ar').hidden=ar;
-    $('return-preview').hidden=!ar;
-    $('reposition').hidden=true;
+     $('reposition').hidden=true;
     $('customize').hidden=true;
     $('close-panel').hidden=!ar;
     previewCanvas.hidden=ar;
@@ -642,7 +666,14 @@
           if(diag){diag.state('camera-running');diag.note('xr-started');}
           xr.renderer.outputEncoding=T.sRGBEncoding;
           xr.renderer.toneMapping=T.ACESFilmicToneMapping;
-          xr.renderer.toneMappingExposure=1.3;
+          // Old setup (exposure 1.3, fill 1.75, key 2.1) heavily
+          // overexposed lighter finishes. Keep ACES and metallic shading.
+          xr.renderer.toneMappingExposure=.92;
+          setSampleLighting(true);
+          if(diag)diag.note('ar-lighting',{
+            exposure:.92,hemisphere:AR_LIGHTING.fill,
+            directional:AR_LIGHTING.key,material:'coated-metal'
+          });
           activeScene.add(placement,sceneLights);
           if (wallGuide) activeScene.add(wallGuide.group);
           if (floorGuide) activeScene.add(floorGuide.group);
@@ -720,6 +751,7 @@
       if(diag){diag.state('ar-failed');diag.note('ar-failure',{message:error.message||String(error)});}
       console.error('AR start error',error);
       arRunning=false;
+      setSampleLighting(false);
       setMode(false);
       if (!previewRenderer) createPreviewRenderer();
       tell('AR start failed: '+error.message,6500);
@@ -737,6 +769,7 @@
     arRunning=false;
     arPlaced=false;
     trackingNormal=false;
+    setSampleLighting(false);
     placement.position.set(0,0,0);
     placement.rotation.set(0,0,0);
     placement.visible=true;
@@ -761,8 +794,7 @@
   // preserving iOS camera gesture permissions during the exit animation.
   window.luxStartAR=startAR;
   $('start-ar').onclick=startAR;
-  $('return-preview').onclick=stopAR;
-  document.addEventListener('visibilitychange',()=>{
+   document.addEventListener('visibilitychange',()=>{
     if (document.hidden&&arRunning&&window.XR8&&window.XR8.pause) window.XR8.pause();
     else if(!document.hidden&&arRunning&&window.XR8&&window.XR8.resume) window.XR8.resume();
   });
