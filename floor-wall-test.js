@@ -103,6 +103,7 @@ window.createLuxFloorWallTest=function(THREE){
     const ready=active&&initialized&&trackingNormal;
     overlay.classList.toggle('is-ready',ready);
     overlay.classList.toggle('is-waiting',active&&!ready);
+    overlay.classList.toggle('has-grid',active&&initialized);
     placeButton.disabled=!ready;
     if(!initialized){
       trackTitle.textContent='Finding floor';
@@ -294,7 +295,7 @@ window.createLuxFloorWallTest=function(THREE){
     };
     placed=true;active=false;
     group.visible=false; // LUX cladding replaces the alignment grid.
-    overlay.classList.remove('is-active','is-ready','is-waiting');
+    overlay.classList.remove('is-active','is-ready','is-waiting','has-grid');
     overlay.classList.add('is-placed');
     note('floor-live-placed',{
       x:pose.position.x,y:pose.position.y,z:pose.position.z,
@@ -369,7 +370,7 @@ window.createLuxFloorWallTest=function(THREE){
   function stop(){
     active=false;placed=false;trackingNormal=false;normalSince=0;
     resetAlignment();
-    overlay.classList.remove('is-active','is-placed','is-ready','is-waiting');
+    overlay.classList.remove('is-active','is-placed','is-ready','is-waiting','has-grid');
   }
   return{
     group,setActive,update,getDebug,floorHit,
