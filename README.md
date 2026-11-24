@@ -27,7 +27,9 @@ This is a static website. No npm installation, backend or Adobe Aero account is 
 
 ## Isolated Floor → Wall experiment (test link)
 
-Test URL: `https://lux-digital.github.io/AR-Digital-Samples-/?wallTest=1&v=19`.
+**Standalone test URL:** `https://lux-digital.github.io/AR-Digital-Samples-/floor-test.html?v=20`.
+
+This dedicated page displays **FLOOR → WALL TEST** on both the startup screen and AR view, explicitly forces the floor test, and does **not load `wall-guide.js`**. The earlier `?wallTest=1` URL is retained as a compatibility shortcut, but use the standalone page for testing.
 
 This mode is opt-in: the ordinary URL continues to use the original experimental seam/point-cloud placement. The new `floor-wall-test.js` module **does not try to recognize walls automatically**. It uses 8th Wall's absolute-scale world tracking, in which the horizontal floor is **Y=0**. Two user-selected floor locations establish a line in that tracked ground plane, and a truly vertical wall plane is erected through them. The finished grid and model remain at world-fixed coordinates rather than tracking the camera.
 
