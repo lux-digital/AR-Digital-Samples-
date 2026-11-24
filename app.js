@@ -99,6 +99,13 @@
     ? window.createLuxFloorWallTest(T) : null;
   if (wallGuide) stageScene.add(wallGuide.group);
   if (floorGuide) stageScene.add(floorGuide.group);
+  // Optional depth layer only exists on the existing floor-test page.
+  // It does not affect SLAM, placement, lighting, or the original main page.
+  const depthOcclusion=floorTestMode&&typeof window.createLuxDepthOcclusion==='function'
+    ?window.createLuxDepthOcclusion(T,{
+      stage,button:$('depth-toggle'),diagnostics:diag
+    }):null;
+  if(depthOcclusion)trimMats.forEach(material=>depthOcclusion.decorate(material));
   if(floorTestMode && diag)diag.note('floor-test-mode',{
     enabled:true,method:'interactive-vertical-plane',groundY:0
   });
@@ -274,6 +281,7 @@
         }
         material.side=T.DoubleSide;
         applyCropShader(material);
+        if(depthOcclusion)depthOcclusion.decorate(material);
         return material;
       });
       const mesh=new T.Mesh(entry.geometry,materials.length===1?materials[0]:materials);
@@ -484,6 +492,7 @@
     placement.visible=false;
     if (wallGuide) wallGuide.setActive(true);
     if (floorGuide) floorGuide.setActive(true);
+    if (depthOcclusion) depthOcclusion.setPlaced(false);
     if (diag){diag.state('scanning');diag.note('scan-started',{trackingNormal,mode:floorTestMode?'floor-live-plane':'seam-and-points'});}
     stage.classList.add('placing');
     document.body.classList.add('placing');
@@ -518,6 +527,7 @@
     document.body.classList.remove('placing');
     $('reposition').hidden=false;
     $('customize').hidden=false;
+    if(depthOcclusion)depthOcclusion.setPlaced(true);
     tell(pose.source==='floor-live-plane'||pose.source==='floor-two-point'
       ? 'Floor-anchored test: walk sideways and check alignment and stability.'
       : pose.source==='confirmed'
@@ -640,6 +650,7 @@
         name:'lux-scene',
         onAttach:({video,videoWidth,videoHeight,version,status})=>{
           if(wallGuide)wallGuide.attachVideo(video);
+          if(depthOcclusion)depthOcclusion.attachVideo(video);
           if(diag)diag.note('xr-attached',{
             status,engineVersion:version||null,
             videoPresent:!!video,videoReadyState:video&&video.readyState,
@@ -648,6 +659,7 @@
         },
         onCameraStatusChange:({status,video,videoWidth,videoHeight})=>{
           if(wallGuide && video) wallGuide.attachVideo(video);
+          if(depthOcclusion&&video)depthOcclusion.attachVideo(video);
           if(diag)diag.note('camera-status',{
             status,videoPresent:!!video,videoReadyState:video&&video.readyState,
             videoWidth,videoHeight
@@ -701,6 +713,9 @@
           // Keep the floor reference and jump diagnostics alive after placement
           // rather than freezing the entire guide's monitoring.
           if(floorGuide)floorGuide.update(activeCamera,trackingNormal);
+          if(depthOcclusion&&arPlaced){
+            depthOcclusion.onFrame(activeCamera,arRenderer,placement,bounds);
+          }
           if(diag)diag.sample(reality,floorGuide||wallGuide,activeCamera);
           updateHandles();
           restoreStatus();
@@ -752,6 +767,7 @@
       if(diag){diag.state('ar-failed');diag.note('ar-failure',{message:error.message||String(error)});}
       console.error('AR start error',error);
       arRunning=false;
+      if(depthOcclusion)depthOcclusion.stop();
       setSampleLighting(false);
       setMode(false);
       if (!previewRenderer) createPreviewRenderer();
@@ -770,6 +786,7 @@
     arRunning=false;
     arPlaced=false;
     trackingNormal=false;
+    if(depthOcclusion)depthOcclusion.stop();
     setSampleLighting(false);
     placement.position.set(0,0,0);
     placement.rotation.set(0,0,0);
