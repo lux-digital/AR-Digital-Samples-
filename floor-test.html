@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="LUX AR Samples">
   <link rel="apple-touch-icon" href="./icon.png?v=1">
   <link rel="icon" type="image/png" href="./icon.png?v=1">
-  <link rel="stylesheet" href="./styles.css?v=13">
+  <link rel="stylesheet" href="./styles.css?v=14">
   <link rel="stylesheet" href="./splash.css?v=11">
   <style>
     .lux-floor-demo-banner {
@@ -64,23 +64,18 @@
       <div class="stage-vignette" aria-hidden="true"></div>
       <div class="crosshair" id="crosshair" aria-hidden="true"><span></span><span></span></div>
       <div id="handles" aria-label="Resize sample">
-        <button class="edge-handle" data-edge="top" aria-label="Drag to adjust top edge"><img src="./ICONS/EXPAND.png" alt="" onerror="this.hidden=true"></button>
-        <button class="edge-handle" data-edge="right" aria-label="Drag to adjust right edge"><img src="./ICONS/EXPAND.png" alt="" onerror="this.hidden=true"></button>
-        <button class="edge-handle" data-edge="bottom" aria-label="Drag to adjust bottom edge"><img src="./ICONS/EXPAND.png" alt="" onerror="this.hidden=true"></button>
-        <button class="edge-handle" data-edge="left" aria-label="Drag to adjust left edge"><img src="./ICONS/EXPAND.png" alt="" onerror="this.hidden=true"></button>
+        <button class="edge-handle" data-edge="top" aria-label="Drag to adjust top edge"><svg class="resize-glyph" viewBox="0 0 80 48" aria-hidden="true" focusable="false"><path d="M5.3 21.2 L28.2 5.1 Q33 2.4 33 8 L33 40 Q33 45 28.2 42.9 L5.3 26.8 Q1 24 5.3 21.2Z"/><path d="M74.7 21.2 L51.8 5.1 Q47 2.4 47 8 L47 40 Q47 45 51.8 42.9 L74.7 26.8 Q79 24 74.7 21.2Z"/></svg></button>
+        <button class="edge-handle" data-edge="right" aria-label="Drag to adjust right edge"><svg class="resize-glyph" viewBox="0 0 80 48" aria-hidden="true" focusable="false"><path d="M5.3 21.2 L28.2 5.1 Q33 2.4 33 8 L33 40 Q33 45 28.2 42.9 L5.3 26.8 Q1 24 5.3 21.2Z"/><path d="M74.7 21.2 L51.8 5.1 Q47 2.4 47 8 L47 40 Q47 45 51.8 42.9 L74.7 26.8 Q79 24 74.7 21.2Z"/></svg></button>
+        <button class="edge-handle" data-edge="bottom" aria-label="Drag to adjust bottom edge"><svg class="resize-glyph" viewBox="0 0 80 48" aria-hidden="true" focusable="false"><path d="M5.3 21.2 L28.2 5.1 Q33 2.4 33 8 L33 40 Q33 45 28.2 42.9 L5.3 26.8 Q1 24 5.3 21.2Z"/><path d="M74.7 21.2 L51.8 5.1 Q47 2.4 47 8 L47 40 Q47 45 51.8 42.9 L74.7 26.8 Q79 24 74.7 21.2Z"/></svg></button>
+        <button class="edge-handle" data-edge="left" aria-label="Drag to adjust left edge"><svg class="resize-glyph" viewBox="0 0 80 48" aria-hidden="true" focusable="false"><path d="M5.3 21.2 L28.2 5.1 Q33 2.4 33 8 L33 40 Q33 45 28.2 42.9 L5.3 26.8 Q1 24 5.3 21.2Z"/><path d="M74.7 21.2 L51.8 5.1 Q47 2.4 47 8 L47 40 Q47 45 51.8 42.9 L74.7 26.8 Q79 24 74.7 21.2Z"/></svg></button>
       </div>
       <header class="topbar">
         <div class="brand"><img class="brand-image" src="./LUX%20Logo%20white.png" alt="LUX Architectural Products"></div>
         <span class="top-tag">DIGITAL SAMPLES <span class="top-dot"></span> <span id="mode-label">3D PREVIEW</span></span>
       </header>
-      <div class="stage-top-actions">
-        <button id="reset" class="icon-button" title="Reset size and position" aria-label="Reset"><img src="./ICONS/HOME.png" alt="" onerror="this.hidden=true"><span>Reset</span></button>
-        <button id="help" class="icon-button" title="How to use" aria-label="Help"><span class="questionmark">?</span><span>Help</span></button>
-      </div>
       <div class="status-pill" id="status" role="status" aria-live="polite">Rotate the 3D view by dragging. Resize using the four handles.</div>
       <div class="stage-bottom-actions">
         <button id="start-ar" class="primary-button">START AR <span class="button-icon">↗</span></button>
-        <button id="return-preview" class="outline-button" hidden>← 3D PREVIEW</button>
         <button id="reposition" class="outline-button" hidden>REPOSITION</button>
         <button id="customize" class="primary-button" hidden>FINISHES</button>
       </div>
@@ -101,21 +96,13 @@
       </footer>
     </section>
   </main>
-  <dialog id="help-dialog">
-    <form method="dialog"><button class="dialog-close" aria-label="Close">×</button></form>
-    <span class="eyebrow">HOW IT WORKS</span><h2>Design it on your wall.</h2>
-    <p><b>3D Preview:</b> Drag anywhere outside the edge controls to orbit around the sample. Drag any of the four circular handles to change the sample size.</p>
-    <p><b>Floor → Wall test:</b> Tap START AR, slowly scan the floor until tracking is ready, and a white vertical grid will appear automatically. Drag the grid sideways and forward or back until its bottom edge meets the wall. Drag its circular rotation control left or right until it lines up with the real wall. Then tap PLACE WALL to show the LUX cladding.</p>
-    <p>This experiment uses 8th Wall's tracked floor coordinate system. It does NOT detect the wall automatically. You can see and correct the alignment before placement. After placing, move sideways, closer, and look away and back to test stability. SAVE DIAGNOSTICS exports the results.</p>
-    <button class="primary-button" onclick="document.getElementById('help-dialog').close()">GOT IT</button>
-  </dialog>
   <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/build/three.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.146.0/examples/js/loaders/GLTFLoader.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@8thwall/xrextras@1/dist/xrextras.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js" async crossorigin="anonymous" data-preload-chunks="slam"></script>
-  <script src="./floor-wall-test.js?v=4" defer></script>
+  <script src="./floor-wall-test.js?v=5" defer></script>
   <script src="./diagnostics.js?v=3" defer></script>
-  <script src="./app.js?v=12" defer></script>
+  <script src="./app.js?v=13" defer></script>
   <script src="./splash.js?v=4" defer></script>
   <!-- Copyright (c) Niantic Spatial, Inc. 8th Wall Engine Binary used under its license.
        https://github.com/8thwall/engine/blob/main/LICENSE -->
