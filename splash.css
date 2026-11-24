@@ -130,35 +130,42 @@ body.splash-visible{overflow:hidden}
   backdrop-filter:blur(14px);
   box-shadow:0 9px 42px rgba(0,0,0,.17);
 }
-/* A clearly visible, premium pulse without fading or altering the frosted glass.
-   Breathe the circle by 4.5% and send a glowing ring outward every 2.7s. */
-.lux-splash__circle::after{
-  content:"";position:absolute;inset:-2px;border-radius:inherit;
+/* The visible impulse and expanding ring are INDEPENDENT siblings.
+   Previously the ring lived inside .circle and inherited its changing scale:
+   this multiplied the transforms and created a perceptible uneven speed.
+   2.7s repeats and the wireframe-wave mask remain unchanged. */
+.lux-splash__circle{
+  z-index:1;
+}
+.lux-splash__pulse-ring{
+  position:absolute;inset:-2px;border-radius:50%;
   border:2px solid rgba(255,255,255,.72);
   box-shadow:0 0 14px rgba(255,255,255,.52),0 0 34px rgba(255,255,255,.28);
   pointer-events:none;opacity:0;
+  transform:scale(1);
+  transform-origin:center;
+  will-change:transform,opacity;
 }
-/* One quick, symmetric button impact; the bright outline keeps moving
-   at ONE constant radial speed until its final fully-transparent frame.
-   Pulse + wave repeat every 2.7s (the grid ripple timing is unchanged). */
 .lux-splash.is-ready:not(.is-exiting) .lux-splash__circle{
   animation:lux-splash-breathe 2.7s linear infinite;
 }
-.lux-splash.is-ready:not(.is-exiting) .lux-splash__circle::after{
+.lux-splash.is-ready:not(.is-exiting) .lux-splash__pulse-ring{
   animation:lux-splash-pulse 2.7s linear infinite;
 }
 @keyframes lux-splash-breathe{
+  /* Tiny press-in -> release: one sharp trigger, not a long breathe. */
   0%{transform:scale(1)}
-  4%{transform:scale(1.085)}
-  8%,100%{transform:scale(1)}
+  2%{transform:scale(.975)}
+  5%{transform:scale(1.045)}
+  9%,100%{transform:scale(1)}
 }
 @keyframes lux-splash-pulse{
-  /* Exactly .025 scale per 1% of the 2.7s cycle, including during fade. */
-  0%{transform:scale(1);opacity:0}
-  2%{transform:scale(1.05);opacity:.9}
-  12%{transform:scale(1.30);opacity:.9}
-  20%{transform:scale(1.50);opacity:0}
-  100%{transform:scale(1.50);opacity:0}
+  /* Start after the button begins its press. From 3%-14%, scale advances
+     exactly .04 per 1% of the cycle, continuing at constant speed during fade. */
+  0%,3%{transform:scale(1);opacity:0}
+  5%{transform:scale(1.08);opacity:.9}
+  14%{transform:scale(1.44);opacity:0}
+  100%{transform:scale(1.44);opacity:0}
 }
 .lux-splash__triangle{
   width:47%;height:47%;
@@ -222,7 +229,7 @@ body.splash-visible{overflow:hidden}
   .lux-splash__image{animation:none;transform:scale(1.05)}
   .lux-splash__reveal{animation:none;opacity:0}
   .lux-splash__grid-reveal{animation:none!important;opacity:0!important}
-  .lux-splash.is-ready .lux-splash__circle::after{animation:none}
+  .lux-splash.is-ready .lux-splash__pulse-ring{animation:none;opacity:0}
   .lux-splash.is-exiting .lux-splash__image,.lux-splash.is-exiting .lux-splash__shade{transition-duration:.2s}
 }
 
