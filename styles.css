@@ -512,3 +512,38 @@ body.floor-wall-test-mode .stage.placing .status-pill{display:none!important}
 .edge-handle[data-edge="top"] .resize-glyph,
 .edge-handle[data-edge="bottom"] .resize-glyph{transform:rotate(90deg)}
 .edge-handle.dragging .resize-glyph{fill:#fff}
+
+
+/* The existing floor test gains one opt-in depth switch AFTER placement.
+   Default remains normal, lightweight 8th Wall tracking and rendering. */
+body.floor-wall-test-mode .stage-bottom-actions .lux-depth-toggle{
+  min-width:91px;
+  padding:12px 10px;
+  font-size:10px;
+  letter-spacing:.2px;
+  border-color:rgba(255,255,255,.65);
+  background:rgba(17,19,18,.8);
+  color:white;
+}
+body.floor-wall-test-mode .stage-bottom-actions .lux-depth-toggle[hidden]{
+  display:none!important;
+}
+body.floor-wall-test-mode .stage-bottom-actions .lux-depth-toggle.depth-enabled{
+  border-color:rgba(171,244,185,.9);
+  color:#caffda;
+  background:rgba(18,56,30,.85);
+}
+body.floor-wall-test-mode .stage-bottom-actions .lux-depth-toggle.depth-loading{
+  border-color:rgba(255,255,255,.6);
+  background:rgba(45,45,45,.93);
+  animation:lux-depth-pulse 1.3s ease-in-out infinite;
+}
+@keyframes lux-depth-pulse{50%{opacity:.56}}
+@media(max-width:550px){
+  body.floor-wall-test-mode .stage-bottom-actions{gap:7px}
+  body.floor-wall-test-mode .stage-bottom-actions button{padding:12px 10px;font-size:10px;letter-spacing:0}
+  body.floor-wall-test-mode .stage-bottom-actions .lux-depth-toggle{padding:12px 8px;font-size:9px;min-width:82px}
+}
+@media(prefers-reduced-motion:reduce){
+  body.floor-wall-test-mode .stage-bottom-actions .lux-depth-toggle.depth-loading{animation:none}
+}
