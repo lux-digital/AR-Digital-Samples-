@@ -376,105 +376,110 @@ body.splash-visible #lux-diag-root{display:none!important}
 }
 
 
-/* LUX floor-test UI. One draggable and rotatable world-space vertical grid.
-   This block affects only the floor test mode; the regular AR stays intact. */
+/* Floor → Wall: minimal UI + indeterminate tracking animation.
+   The original AR entry page is unaffected. */
+body.floor-wall-test-mode.ar-active #stage>.lux-floor-demo-banner,
+body.floor-wall-test-mode.placing .topbar .top-tag,
+body.floor-wall-test-mode.placing .stage-top-actions,
+body.floor-wall-test-mode.placing .lux-diag-fab{display:none!important}
+body.floor-wall-test-mode.placing .brand-image{
+  width:clamp(95px,25vw,124px);
+}
+body.floor-wall-test-mode.placing .topbar{
+  padding:calc(22px + env(safe-area-inset-top)) 23px 10px;
+}
 .lux-floor-test-overlay{
-  display:none;
-  position:absolute;
-  inset:0;
-  z-index:9;
-  pointer-events:none;
-  color:#fff;
+  display:none;position:absolute;inset:0;z-index:9;
+  pointer-events:none;color:#fff;text-align:center;
   font-family:'DM Sans',Arial,sans-serif;
-  text-align:center;
 }
 body.floor-wall-test-mode .lux-floor-test-overlay.is-active{display:block}
 body.floor-wall-test-mode .stage.placing .crosshair,
-body.floor-wall-test-mode .stage.placing .status-pill{display:none}
-.lux-floor-test-tag{
-  position:absolute;left:50%;
-  top:calc(165px + env(safe-area-inset-top));
-  transform:translateX(-50%);width:max-content;max-width:90%;
-  border:1px solid rgba(190,255,210,.7);border-radius:20px;
-  padding:6px 13px;background:rgba(8,26,13,.84);
-  box-shadow:0 4px 14px #0006;
-  font-size:10px;font-weight:800;letter-spacing:1px;
-  color:#c3ffce;
-}
-.lux-floor-test-instructions{
-  position:absolute;left:50%;
-  top:calc(203px + env(safe-area-inset-top));
-  transform:translateX(-50%);
-  width:min(390px,calc(100% - 36px));
-  border:1px solid #ffffff59;border-radius:12px;
-  padding:10px 13px;background:rgba(14,14,14,.86);
-  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
-  font-size:12px;font-weight:700;line-height:1.45;
-  box-shadow:0 7px 20px #0005;
-}
-.lux-floor-test-reset{
-  position:absolute;left:50%;
-  top:calc(271px + env(safe-area-inset-top));
-  transform:translateX(-50%);
-  border:1px solid #ffffff75;border-radius:8px;
-  min-height:35px;padding:8px 13px;background:rgba(15,15,15,.85);
-  color:#fff;letter-spacing:.5px;font-size:10px;font-weight:800;
-  pointer-events:auto;touch-action:manipulation;
-}
-.lux-floor-test-rotate{
-  display:none;position:absolute;
-  left:50%;top:62%;
-  transform:translate(-50%,-50%);
-  width:90px;height:90px;padding:7px;
-  border:3px solid rgba(255,255,255,.97);border-radius:50%;
-  background:rgba(23,23,23,.43);
-  color:#fff;pointer-events:auto;touch-action:none;
-  -webkit-user-select:none;user-select:none;
-  -webkit-tap-highlight-color:transparent;
-  box-shadow:0 5px 19px #0008,0 0 0 2px #0004;
-}
-.lux-floor-test-rotate svg{display:block;width:100%;height:100%}
-.lux-floor-test-rotate:active{background:rgba(35,55,43,.75)}
-.lux-floor-test-footnote{
+body.floor-wall-test-mode .stage.placing .status-pill{display:none!important}
+.lux-floor-track{
   position:absolute;
-  bottom:calc(173px + env(safe-area-inset-bottom));
+  top:43%;left:50%;transform:translate(-50%,-50%);
+  display:none;align-items:center;justify-content:center;gap:13px;
+  width:min(310px,calc(100% - 44px));min-height:76px;
+  padding:14px 19px;text-align:left;
+  border:1px solid rgba(255,255,255,.23);border-radius:16px;
+  background:rgba(14,17,17,.82);
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  box-shadow:0 14px 35px #0005;
+}
+.lux-floor-test-overlay.is-waiting .lux-floor-track{display:flex}
+.lux-floor-track-spinner{
+  display:block;flex:0 0 29px;width:29px;height:29px;
+  border:3px solid rgba(255,255,255,.20);border-top-color:#fff;
+  border-right-color:#bdf2d1;border-radius:50%;
+  animation:lux-floor-spin .84s linear infinite;
+}
+@keyframes lux-floor-spin{to{transform:rotate(360deg)}}
+.lux-floor-track-copy{display:flex;flex-direction:column;gap:4px;min-width:0}
+.lux-floor-track-title{font-size:13px;letter-spacing:.2px;font-weight:800}
+.lux-floor-track-detail{font-size:10px;font-weight:500;line-height:1.35;color:#dce2dc}
+.lux-floor-test-instructions{
+  display:none;position:absolute;
+  left:50%;top:calc(134px + env(safe-area-inset-top));
+  transform:translateX(-50%);
+  width:max-content;max-width:calc(100% - 40px);
+  background:rgba(17,19,18,.76);
+  border:1px solid rgba(255,255,255,.25);
+  border-radius:25px;padding:9px 14px;
+  font-size:11px;font-weight:700;
+  letter-spacing:.05px;line-height:1.35;
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+}
+.lux-floor-test-overlay.has-grid .lux-floor-test-instructions{display:block}
+.lux-floor-test-rotate{
+  display:none;position:absolute;left:50%;top:62%;
+  transform:translate(-50%,-50%);
+  width:76px;height:76px;padding:5px;
+  border:2px solid #fff;border-radius:50%;
+  color:white;background:rgba(17,18,17,.43);
+  pointer-events:auto;touch-action:none;user-select:none;
+  -webkit-user-select:none;-webkit-tap-highlight-color:transparent;
+  box-shadow:0 5px 16px #0007;
+}
+.lux-floor-test-rotate svg{width:100%;height:100%;display:block}
+.lux-floor-test-rotate:active{background:rgba(30,55,40,.8)}
+.lux-floor-test-actions{
+  display:none;position:absolute;
+  bottom:calc(108px + env(safe-area-inset-bottom));
   left:50%;transform:translateX(-50%);
-  width:min(410px,calc(100% - 34px));
-  background:rgba(4,5,5,.69);border-radius:9px;
-  padding:10px;font-size:11px;font-weight:700;line-height:1.3;
-  letter-spacing:.15px;color:#f2f2f2;
+  width:min(330px,calc(100% - 52px));
+  align-items:center;justify-content:center;gap:12px;
+}
+.lux-floor-test-overlay.has-grid .lux-floor-test-actions{display:flex}
+.lux-floor-test-reset{
+  min-height:44px;padding:0 13px;
+  border:1px solid rgba(255,255,255,.4);border-radius:9px;
+  background:rgba(12,13,13,.73);color:#f6f6f6;
+  font:750 10px/1 'DM Sans',Arial,sans-serif;
+  letter-spacing:.6px;pointer-events:auto;touch-action:manipulation;
 }
 .lux-floor-test-place{
-  position:absolute;
-  bottom:calc(110px + env(safe-area-inset-bottom));
-  left:50%;transform:translateX(-50%);
-  width:min(250px,calc(100% - 60px));
-  min-height:48px;border-radius:11px;
+  min-height:48px;flex:1;
+  border:1px solid rgba(255,255,255,.5);border-radius:9px;
   background:#d32132;color:white;
-  border:1px solid rgba(255,255,255,.68);
-  box-shadow:0 8px 25px #0008;
+  box-shadow:0 8px 21px #0008;
   font:800 12px/1.2 'DM Sans',Arial,sans-serif;
-  letter-spacing:1px;
-  pointer-events:auto;touch-action:manipulation;
+  letter-spacing:.9px;pointer-events:auto;touch-action:manipulation;
 }
-.lux-floor-test-place:disabled{opacity:.40;background:#333}
+.lux-floor-test-place:disabled{opacity:.5;background:#333}
 .lux-floor-test-place:not(:disabled):active{background:#f03a45}
 .lux-floor-test-place:focus-visible,
 .lux-floor-test-rotate:focus-visible,
-.lux-floor-test-reset:focus-visible{
-  outline:2px solid white;outline-offset:3px;
-}
+.lux-floor-test-reset:focus-visible{outline:2px solid #fff;outline-offset:3px}
 @media(max-width:550px){
-  .lux-floor-test-tag{top:calc(166px + env(safe-area-inset-top));font-size:9px}
-  .lux-floor-test-instructions{top:calc(203px + env(safe-area-inset-top));font-size:11px}
-  .lux-floor-test-reset{top:calc(263px + env(safe-area-inset-top))}
-  .lux-floor-test-rotate{width:84px;height:84px}
-  .lux-floor-test-footnote{font-size:10px}
+  .lux-floor-test-rotate{width:70px;height:70px}
+  .lux-floor-test-instructions{font-size:10px;top:calc(117px + env(safe-area-inset-top))}
 }
 @media(max-height:670px){
-  .lux-floor-test-tag{top:calc(130px + env(safe-area-inset-top))}
-  .lux-floor-test-instructions{top:calc(162px + env(safe-area-inset-top))}
-  .lux-floor-test-reset{top:calc(225px + env(safe-area-inset-top))}
-  .lux-floor-test-footnote{bottom:calc(163px + env(safe-area-inset-bottom))}
-  .lux-floor-test-place{bottom:calc(102px + env(safe-area-inset-bottom))}
+  .lux-floor-track{top:40%}
+  .lux-floor-test-instructions{top:calc(105px + env(safe-area-inset-top))}
+  .lux-floor-test-actions{bottom:calc(95px + env(safe-area-inset-bottom))}
+}
+@media(prefers-reduced-motion:reduce){
+  .lux-floor-track-spinner{animation-duration:2s}
 }
