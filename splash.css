@@ -138,8 +138,9 @@ body.splash-visible{overflow:hidden}
   box-shadow:0 0 14px rgba(255,255,255,.52),0 0 34px rgba(255,255,255,.28);
   pointer-events:none;opacity:0;
 }
-/* The button delivers a quick IMPULSE at the start of each 2.7s wave.
-   Only the first ~0.4-0.55s is active; the rest is a quiet hold. */
+/* Fast impulse with strictly linear, symmetric outward/inward speeds.
+   Previously the return leg ran 10% vs 6% of the cycle, making it LOOK eased.
+   Keep the 2.7s repeat; the wireframe mask animation is untouched. */
 .lux-splash.is-ready:not(.is-exiting) .lux-splash__circle{
   animation:lux-splash-breathe 2.7s linear infinite;
 }
@@ -148,15 +149,13 @@ body.splash-visible{overflow:hidden}
 }
 @keyframes lux-splash-breathe{
   0%{transform:scale(1)}
-  6%{transform:scale(1.085)}
-  16%{transform:scale(1)}
-  100%{transform:scale(1)}
+  5%{transform:scale(1.085)}
+  10%,100%{transform:scale(1)}
 }
 @keyframes lux-splash-pulse{
-  0%{transform:scale(1);opacity:.15}
-  6%{transform:scale(1.13);opacity:.92}
-  21%{transform:scale(1.38);opacity:0}
-  100%{transform:scale(1.38);opacity:0}
+  0%{transform:scale(1);opacity:.88}
+  16%{transform:scale(1.48);opacity:.54}
+  18%,100%{transform:scale(1.54);opacity:0}
 }
 .lux-splash__triangle{
   width:47%;height:47%;
