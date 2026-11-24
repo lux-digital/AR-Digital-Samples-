@@ -67,9 +67,9 @@ body.splash-visible{overflow:hidden}
   mask-repeat:no-repeat;
 }
 .lux-splash.is-ready:not(.is-exiting) .lux-splash__grid-reveal{
-  /* This and the play-circle halo start on the SAME is-ready frame.
-     One 2.7s wave expands beyond every screen corner on each pulse. */
-  animation:lux-grid-wave 2.7s linear infinite;
+  /* Start the wireframe ripple ~180ms AFTER the button's initial impact,
+     preserving its existing 2.7s duration, linear motion and repeat interval. */
+  animation:lux-grid-wave 2.7s linear 0.18s infinite;
 }
 @keyframes lux-grid-wave{
   0% {--lux-grid-radius:0px;opacity:0}
@@ -138,9 +138,9 @@ body.splash-visible{overflow:hidden}
   box-shadow:0 0 14px rgba(255,255,255,.52),0 0 34px rgba(255,255,255,.28);
   pointer-events:none;opacity:0;
 }
-/* Fast impulse with strictly linear, symmetric outward/inward speeds.
-   Previously the return leg ran 10% vs 6% of the cycle, making it LOOK eased.
-   Keep the 2.7s repeat; the wireframe mask animation is untouched. */
+/* A short, decisive button impact (0.27s), followed by silence for the
+   remainder of each 2.7s cycle. All segment speeds are linear, no ease-out.
+   The halo begins invisible, removing its previous first-frame brightness pop. */
 .lux-splash.is-ready:not(.is-exiting) .lux-splash__circle{
   animation:lux-splash-breathe 2.7s linear infinite;
 }
@@ -149,13 +149,16 @@ body.splash-visible{overflow:hidden}
 }
 @keyframes lux-splash-breathe{
   0%{transform:scale(1)}
+  2%{transform:scale(.98)}
   5%{transform:scale(1.085)}
   10%,100%{transform:scale(1)}
 }
 @keyframes lux-splash-pulse{
-  0%{transform:scale(1);opacity:.88}
-  16%{transform:scale(1.48);opacity:.54}
-  18%,100%{transform:scale(1.54);opacity:0}
+  0%{transform:scale(1);opacity:0}
+  3%{transform:scale(1.11);opacity:.87}
+  9%{transform:scale(1.27);opacity:.72}
+  18%{transform:scale(1.51);opacity:0}
+  100%{transform:scale(1.51);opacity:0}
 }
 .lux-splash__triangle{
   width:47%;height:47%;
