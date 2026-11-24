@@ -726,9 +726,8 @@
       stageScene.add(wallGuide.group);
     }
     if (floorGuide) {
-      floorGuide.setActive(false);
+      floorGuide.stop();
       stageScene.add(floorGuide.group);
-      floorGuide.group.visible=false;
     }
     setMode(false);
     if (!previewRenderer) createPreviewRenderer();
