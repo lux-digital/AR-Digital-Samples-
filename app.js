@@ -10,8 +10,14 @@
   const diag = window.luxDiagnostics || null;
   // Only the explicit ?wallTest=1 link changes wall placement. The ordinary
   // live AR experience remains unchanged while this experiment is evaluated.
-  const floorTestMode=new URLSearchParams(window.location.search).get('wallTest')==='1';
-  if(floorTestMode)document.body.classList.add('floor-wall-test-mode');
+  // Dedicated floor-test.html sets this flag before app.js loads; query
+  // parameter support remains as a backwards-compatible shortcut.
+  const floorTestMode=window.LUX_FLOOR_TEST===true ||
+    new URLSearchParams(window.location.search).get('wallTest')==='1';
+  if(floorTestMode){
+    document.body.classList.add('floor-wall-test-mode');
+    document.documentElement.setAttribute('data-lux-ar-mode','floor-wall-test');
+  }
   const $ = (id) => document.getElementById(id);
   const stage = $('stage');
   const previewCanvas = $('preview');
