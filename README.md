@@ -25,6 +25,20 @@ This is a static website. No npm installation, backend or Adobe Aero account is 
 
 **Status:** The interface, rendering logic and AR integration are committed, and app.js passes a JavaScript syntax check. These have NOT been visually tested or validated on a real AR device yet. This is a development prototype, not production-ready wall recognition or accurately verified tracking.
 
+## Isolated Floor → Wall experiment (test link)
+
+Test URL: `https://lux-digital.github.io/AR-Digital-Samples-/?wallTest=1&v=19`.
+
+This mode is opt-in: the ordinary URL continues to use the original experimental seam/point-cloud placement. The new `floor-wall-test.js` module **does not try to recognize walls automatically**. It uses 8th Wall's absolute-scale world tracking, in which the horizontal floor is **Y=0**. Two user-selected floor locations establish a line in that tracked ground plane, and a truly vertical wall plane is erected through them. The finished grid and model remain at world-fixed coordinates rather than tracking the camera.
+
+**Testing on a phone:**
+1. Load the test URL, tap START AR, grant the camera permission, and slowly scan the floor until tracking initializes.
+2. Aim at the actual floor–wall junction. **Tap one end of the wall's base**, then tap a **second point at least 55 cm farther along the same wall base**. Avoid tapping the raised top of a baseboard, trim or panel — it isn't at floor height.
+3. The reference plane turns into a world-space green grid, with white line between the two floor markers, and places the cladding vertically. Walk **sideways**, closer, farther, and briefly look away to check whether alignment and tracking remain stable.
+4. Use REPOSITION to try another pair of floor points; CLEAR POINTS resets an incomplete pair. Tap SAVE DIAGNOSTICS and export a JSON report so tracking statuses and unusual camera-pose jumps can be evaluated.
+
+The test bypasses `wall-guide.js` camera-image seam detection, RANSAC point-cloud wall fitting, and camera-pixel pipeline processing. It does **not** prove automatic wall detection; it separates vertical alignment from 8th Wall world tracking to establish a baseline. The floor estimate can still drift or reset. No additional paid service, app install, or model changes were introduced.
+
 ## Test 11: tracking failure fix and visible manual controls
 
 The November 23 diagnostic report recorded **79 JavaScript errors** originating from a typo in `wall-guide.js` line 353: `trackingNormal` was used in `getDebug()` although the declared variable was `trackedNormal`. That bug prevented diagnostic frames from completing. It has been corrected.
