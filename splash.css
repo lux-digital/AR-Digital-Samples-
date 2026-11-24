@@ -138,9 +138,9 @@ body.splash-visible{overflow:hidden}
   box-shadow:0 0 14px rgba(255,255,255,.52),0 0 34px rgba(255,255,255,.28);
   pointer-events:none;opacity:0;
 }
-/* A short, decisive button impact (0.27s), followed by silence for the
-   remainder of each 2.7s cycle. All segment speeds are linear, no ease-out.
-   The halo begins invisible, removing its previous first-frame brightness pop. */
+/* One quick, symmetric button impact; the bright outline keeps moving
+   at ONE constant radial speed until its final fully-transparent frame.
+   Pulse + wave repeat every 2.7s (the grid ripple timing is unchanged). */
 .lux-splash.is-ready:not(.is-exiting) .lux-splash__circle{
   animation:lux-splash-breathe 2.7s linear infinite;
 }
@@ -149,16 +149,16 @@ body.splash-visible{overflow:hidden}
 }
 @keyframes lux-splash-breathe{
   0%{transform:scale(1)}
-  2%{transform:scale(.98)}
-  5%{transform:scale(1.085)}
-  10%,100%{transform:scale(1)}
+  4%{transform:scale(1.085)}
+  8%,100%{transform:scale(1)}
 }
 @keyframes lux-splash-pulse{
+  /* Exactly .025 scale per 1% of the 2.7s cycle, including during fade. */
   0%{transform:scale(1);opacity:0}
-  3%{transform:scale(1.11);opacity:.87}
-  9%{transform:scale(1.27);opacity:.72}
-  18%{transform:scale(1.51);opacity:0}
-  100%{transform:scale(1.51);opacity:0}
+  2%{transform:scale(1.05);opacity:.9}
+  12%{transform:scale(1.30);opacity:.9}
+  20%{transform:scale(1.50);opacity:0}
+  100%{transform:scale(1.50);opacity:0}
 }
 .lux-splash__triangle{
   width:47%;height:47%;
