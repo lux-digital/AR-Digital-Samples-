@@ -138,21 +138,25 @@ body.splash-visible{overflow:hidden}
   box-shadow:0 0 14px rgba(255,255,255,.52),0 0 34px rgba(255,255,255,.28);
   pointer-events:none;opacity:0;
 }
+/* The button delivers a quick IMPULSE at the start of each 2.7s wave.
+   Only the first ~0.4-0.55s is active; the rest is a quiet hold. */
 .lux-splash.is-ready:not(.is-exiting) .lux-splash__circle{
-  animation:lux-splash-breathe 2.7s ease-in-out infinite;
+  animation:lux-splash-breathe 2.7s linear infinite;
 }
 .lux-splash.is-ready:not(.is-exiting) .lux-splash__circle::after{
-  animation:lux-splash-pulse 2.7s ease-out infinite;
+  animation:lux-splash-pulse 2.7s linear infinite;
 }
 @keyframes lux-splash-breathe{
-  0%,100%{transform:scale(1)}
-  48%{transform:scale(1.045)}
+  0%{transform:scale(1)}
+  6%{transform:scale(1.085)}
+  16%{transform:scale(1)}
+  100%{transform:scale(1)}
 }
 @keyframes lux-splash-pulse{
-  0%{transform:scale(1);opacity:.08}
-  36%{transform:scale(1.095);opacity:.78}
-  72%{transform:scale(1.18);opacity:0}
-  100%{transform:scale(1.18);opacity:0}
+  0%{transform:scale(1);opacity:.15}
+  6%{transform:scale(1.13);opacity:.92}
+  21%{transform:scale(1.38);opacity:0}
+  100%{transform:scale(1.38);opacity:0}
 }
 .lux-splash__triangle{
   width:47%;height:47%;
