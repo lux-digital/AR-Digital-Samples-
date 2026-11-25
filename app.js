@@ -82,6 +82,9 @@
   let trackingNormal = false;
   let toastUntil = 0;
   let lastToast = '';
+  let roomExposureReference=0;
+  let lastTrackedCameraPosition=null,lastTrackedCameraAt=0;
+  let photoFile=null,photoUrl=null,takingPhoto=false;
 
   const placement = new T.Group();
   const surfaceRoot = new T.Group();
@@ -115,11 +118,40 @@
   sceneLights.add(fillLight);
   const keyLight = new T.DirectionalLight(0xffffff,2.1);
   const PREVIEW_LIGHTING={fill:1.75,key:2.1};
-  const AR_LIGHTING={fill:.43,key:.55};
+  // Diffuse fill keeps woodgrain true to room light instead of harshly shaded.
+  const AR_LIGHTING={fill:.96,key:.42};
   function setSampleLighting(inAR){
     const preset=inAR?AR_LIGHTING:PREVIEW_LIGHTING;
     fillLight.intensity=preset.fill;
     keyLight.intensity=preset.key;
+  }
+  function updateRoomLighting(reality){
+    if(!arRenderer||!arRunning)return;
+    // The engine estimates exposure, not room light direction or colour temperature.
+    const observed=reality&&reality.lighting&&Number(reality.lighting.exposure);
+    if(!Number.isFinite(observed)||observed<=.001||observed>=100)return;
+    if(!roomExposureReference)roomExposureReference=observed;
+    const ratio=T.MathUtils.clamp(observed/roomExposureReference,.65,1.65);
+    const targetExposure=T.MathUtils.clamp(1.04*Math.sqrt(ratio),.85,1.3);
+    arRenderer.toneMappingExposure+=(targetExposure-arRenderer.toneMappingExposure)*.025;
+    const targetFill=AR_LIGHTING.fill*Math.pow(ratio,.18);
+    fillLight.intensity+=(targetFill-fillLight.intensity)*.02;
+  }
+  function compensateTrackingRelocalization(){
+    if(!activeCamera||!arRunning)return;
+    const now=performance.now();
+    activeCamera.updateMatrixWorld(true);
+    const current=new T.Vector3().setFromMatrixPosition(activeCamera.matrixWorld);
+    if(floorTestMode&&arPlaced&&lastTrackedCameraPosition){
+      const elapsed=now-lastTrackedCameraAt;
+      const delta=current.distanceTo(lastTrackedCameraPosition);
+      if(elapsed>0&&elapsed<250&&delta>.85&&delta<8){
+        // Preserve the positioned wall across physically impossible pose jumps.
+        placement.position.add(current.clone().sub(lastTrackedCameraPosition));
+      }
+    }
+    lastTrackedCameraPosition=current;
+    lastTrackedCameraAt=now;
   }
   keyLight.position.set(-3,4,7);
   sceneLights.add(keyLight);
@@ -274,10 +306,15 @@
         if (source.map) {
           material.map=texture;
           material.color.set(0xffffff);
+          // Lift Fawn's very dark texture grooves without altering source files.
+          if(material.emissive&&finish.id==='Fawn'){
+            material.emissive.setHex(finish.tone);
+            material.emissiveIntensity=.14;
+          }
           // Painted metal: retain subtle highlights without an uncalibrated
           // mirror-like or artificially flat appearance.
-          material.metalness=.16;
-          material.roughness=.64;
+          material.metalness=.08;
+          material.roughness=.79;
         }
         material.side=T.DoubleSide;
         applyCropShader(material);
@@ -458,18 +495,26 @@
     tell('Sample reset',1800);
   }
   // Reset and Help are intentionally absent from the streamlined AR interface.
-  function closeArPanel() {
-    document.querySelector('.config-panel').classList.remove('panel-open');
+  const configPanel=document.querySelector('.config-panel');
+  function closeArPanel(){
+    configPanel.classList.remove('panel-open');
     document.body.classList.remove('ar-panel-open');
-    $('customize').textContent='FINISHES';
+    $('customize').textContent='COLOURS';
+    $('profiles-button').textContent='PROFILES';
   }
-  function toggleArPanel() {
-    if (!arRunning || !arPlaced) return;
-    const isOpen=document.querySelector('.config-panel').classList.toggle('panel-open');
-    document.body.classList.toggle('ar-panel-open',isOpen);
-    $('customize').textContent=isOpen?'HIDE FINISHES':'FINISHES';
+  function toggleArPanel(tab){
+    if(!arRunning||!arPlaced)return;
+    const same=configPanel.classList.contains('panel-open')&&configPanel.dataset.tab===tab;
+    if(same){closeArPanel();return;}
+    configPanel.dataset.tab=tab;
+    configPanel.classList.add('panel-open');
+    document.body.classList.add('ar-panel-open');
+    $('panel-title').textContent=tab==='profiles'?'Choose a profile.':'Choose a colour.';
+    $('customize').textContent=tab==='colours'?'CLOSE':'COLOURS';
+    $('profiles-button').textContent=tab==='profiles'?'CLOSE':'PROFILES';
   }
-  $('customize').onclick=toggleArPanel;
+  $('customize').onclick=()=>toggleArPanel('colours');
+  $('profiles-button').onclick=()=>toggleArPanel('profiles');
   $('close-panel').onclick=closeArPanel;
   function fitARSampleToScreen(distance) {
     // Match the actual tracking camera's field of view; don't estimate it from CSS pixels.
@@ -498,6 +543,8 @@
     document.body.classList.add('placing');
     $('reposition').hidden=true;
     $('customize').hidden=true;
+    $('profiles-button').hidden=true;
+    $('screenshot').hidden=true;
     tell(floorTestMode?
       'FLOOR TEST: Drag the grid to align; rotate with ↻; tap PLACE WALL.' :
       'Scan the floor–wall seam or use two taps to align manually.');
@@ -527,8 +574,11 @@
     document.body.classList.remove('placing');
     $('reposition').hidden=false;
     $('customize').hidden=false;
+    $('profiles-button').hidden=false;
+    $('screenshot').hidden=false;
     if(depthOcclusion)depthOcclusion.setPlaced(true);
-    tell(pose.source==='floor-live-plane'||pose.source==='floor-two-point'
+    tell(pose.provisional?'Sample ready • move gently to improve tracking':
+      pose.source==='floor-live-plane'||pose.source==='floor-two-point'
       ? 'Floor-anchored test: walk sideways and check alignment and stability.'
       : pose.source==='confirmed'
       ? 'Seam and 3D wall cues agreed. Check the sample from several angles.'
@@ -591,6 +641,60 @@
   }
   $('reposition').onclick=startPlacing;
 
+  // Share a customer-friendly still of the AR sample, not diagnostics or UI.
+  const shotSheet=$('lux-shot-sheet');
+  // The full-screen XR canvas and the editor live in separate stacking contexts.
+  // Move the photo preview above both so it is always accessible on iPhone.
+  document.body.appendChild(shotSheet);
+  const shotImage=$('lux-shot-image');
+  const sharePhotoButton=$('lux-shot-share');
+  const savePhotoButton=$('lux-shot-save');
+  function closePhoto(){
+    shotSheet.hidden=true;
+    shotImage.removeAttribute('src');
+    if(photoUrl){URL.revokeObjectURL(photoUrl);photoUrl=null;}
+    photoFile=null;
+  }
+  $('lux-shot-close').onclick=closePhoto;
+  shotSheet.addEventListener('click',event=>{if(event.target===shotSheet)closePhoto();});
+  $('screenshot').onclick=async()=>{
+    if(!arRunning||!arPlaced||takingPhoto)return;
+    takingPhoto=true;
+    $('screenshot').disabled=true;
+    try{
+      const capture=window.XR8&&window.XR8.CanvasScreenshot;
+      if(!capture||typeof capture.takeScreenshot!=='function')
+        throw new Error('Screenshot capture is unavailable on this device.');
+      const image=await capture.takeScreenshot();
+      const data=atob(String(image).split(',').pop());
+      const bytes=new Uint8Array(data.length);
+      for(let i=0;i<data.length;i++)bytes[i]=data.charCodeAt(i);
+      closePhoto();
+      photoFile=new File([bytes],'LUX-Digital-Sample.jpg',{type:'image/jpeg'});
+      photoUrl=URL.createObjectURL(photoFile);
+      shotImage.src=photoUrl;
+      savePhotoButton.href=photoUrl;
+      savePhotoButton.download=photoFile.name;
+      sharePhotoButton.hidden=!(navigator.share&&navigator.canShare&&navigator.canShare({files:[photoFile]}));
+      $('lux-shot-help').textContent='Share with a coworker or save for a moodboard.';
+      shotSheet.hidden=false;
+    }catch(error){
+      console.warn('LUX sample screenshot',error);
+      tell('Could not capture sample: '+(error.message||String(error)),4500);
+    }finally{
+      takingPhoto=false;
+      $('screenshot').disabled=false;
+    }
+  };
+  sharePhotoButton.onclick=async()=>{
+    if(!photoFile||!navigator.share)return;
+    try{await navigator.share({files:[photoFile],title:'LUX Digital Sample'});}
+    catch(error){
+      if(error.name!=='AbortError')
+        $('lux-shot-help').textContent='Share unavailable. Try Save Photo or long-press the image.';
+    }
+  };
+
   function setMode(ar) {
     closeArPanel();
     stage.classList.toggle('ar-mode',ar);
@@ -601,6 +705,8 @@
     $('start-ar').hidden=ar;
      $('reposition').hidden=true;
     $('customize').hidden=true;
+    $('profiles-button').hidden=true;
+    $('screenshot').hidden=true;
     $('close-panel').hidden=!ar;
     previewCanvas.hidden=ar;
     cameraCanvas.hidden=!ar;
@@ -618,7 +724,7 @@
     }
     XR8.XrController.configure({
       disableWorldTracking:false,scale:'absolute',
-      enableLighting:false,enableWorldPoints:true
+      enableLighting:true,enableWorldPoints:true
     });
     let pixelModule=null;
     // The experimental floor wall runs on XR8's ground coordinate system;
@@ -642,6 +748,8 @@
       ...(pixelModule?[pixelModule]:[]),
       XR8.GlTextureRenderer.pipelineModule(),
       XR8.Threejs.pipelineModule(),
+      ...(XR8.CanvasScreenshot&&typeof XR8.CanvasScreenshot.pipelineModule==='function'
+        ?[XR8.CanvasScreenshot.pipelineModule()]:[]),
       XR8.XrController.pipelineModule(),
       // Required on Safari: synchronize viewport and WebGL drawing buffer with
       // the full-screen canvas, including orientation and browser-bar changes.
@@ -681,10 +789,13 @@
           // Bring the real coated-metal finish substantially closer to indoor
           // brightness. Preserve ACES, roughness and directional highlights;
           // do not flatten or permanently darken the source textures.
-          xr.renderer.toneMappingExposure=.72;
-          setSampleLighting(true);
+          xr.renderer.toneMappingExposure=1.04;
+           roomExposureReference=0;
+           lastTrackedCameraPosition=null;
+           lastTrackedCameraAt=0;
+           setSampleLighting(true);
           if(diag)diag.note('ar-lighting',{
-            exposure:.72,hemisphere:AR_LIGHTING.fill,
+            exposure:1.04,hemisphere:AR_LIGHTING.fill,
             directional:AR_LIGHTING.key,material:'coated-metal'
           });
           activeScene.add(placement,sceneLights);
@@ -713,6 +824,8 @@
           // Keep the floor reference and jump diagnostics alive after placement
           // rather than freezing the entire guide's monitoring.
           if(floorGuide)floorGuide.update(activeCamera,trackingNormal);
+           compensateTrackingRelocalization();
+           updateRoomLighting(reality);
           if(depthOcclusion&&arPlaced){
             depthOcclusion.onFrame(activeCamera,arRenderer,placement,bounds,trackingNormal);
           }
@@ -786,6 +899,10 @@
     arRunning=false;
     arPlaced=false;
     trackingNormal=false;
+    lastTrackedCameraPosition=null;
+    lastTrackedCameraAt=0;
+    roomExposureReference=0;
+    closePhoto();
     if(depthOcclusion)depthOcclusion.stop();
     setSampleLighting(false);
     placement.position.set(0,0,0);
