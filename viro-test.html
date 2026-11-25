@@ -92,10 +92,13 @@ function renderStatus(force=false){
   let title='Move phone slowly to initialize tracking';
   let info='Move sideways across a textured wall; do not just rotate the phone.';
   if(!active){title='Viro ready to start';info='Tap START CAMERA to begin.';}
-  else if(placed){title=tracking===3?'Wall sample placed':'Tracking is limited';info=tracking===3?'Walk left/right and return. Does the rectangle stay fixed on the wall?':'Move slowly; Viro hides the sample if its camera pose is lost.';}
+  else if(placed){title=tracking===3?(trackedAnchor===null?'Manual tracking reference placed':'Wall sample placed'):'Tracking is limited';info=tracking===3?'Walk left/right and return. Does the rectangle stay fixed in the room?':'Move slowly; Viro hides the sample if its camera pose is lost.';}
   else if(tracking===3&&confidence>=2&&walls.length){
     title='Wall detected — ready to place';
     info=confidence===3?'Aim the crosshair at the wall and tap PLACE ON WALL.':'Aim at wall and tap PLACE. Relative scale only until tracking improves.';
+   }else if(tracking===3&&confidence===3&&walls.length===0){
+    title='Tracking ready — no wall detected';
+    info='Use PLACE TEST PANEL to measure world tracking without automatic wall detection.';
   }else if(tracking===3&&confidence<2){
     title='Tracking — scale not reliable yet';
     info='Move sideways gently until the phone establishes metric position.';
@@ -111,11 +114,12 @@ function renderStatus(force=false){
   $('message').textContent=info;
   $('metrics').textContent='Pose '+trackingName+' · Scale '+(['none','rotation','relative','metric'][confidence]||'?')+
     ' · Vertical planes '+walls.length+' · Quality '+Math.round(quality*100)+'%';
-  placeButton.disabled=!active||placed||tracking!==3||confidence<2||walls.length===0;
+  placeButton.disabled=!active||placed||tracking!==3||!(walls.length?confidence>=2:confidence===3);
+  placeButton.textContent=walls.length?'PLACE ON WALL':'PLACE TEST PANEL';
   resetButton.disabled=!active||!placed;
   startButton.textContent=active?'STOP CAMERA':'START CAMERA';
   $('hint').textContent=placed?'Walk sideways and return to your starting spot. Check for drift.':
-    'The rectangle only appears after Viro detects a real vertical plane.';
+    walls.length?'Aim at the detected wall.':'No wall detected? Use PLACE TEST PANEL to test tracking anyway.';
 }
 function createFrame(){
   const parent=scene.createNode();
@@ -204,7 +208,10 @@ async function start(){
       if(t-lastSampleAt>500){
         lastSampleAt=t;
         samples.push({ms:Math.round(t-startedAt),tracking,quality:Math.round(quality*100)/100,
-          confidence,vertical:getVertical().length,reason:detail&&detail.reason});
+          confidence,vertical:getVertical().length,totalPlanes:planes.length,
+          cameraPosition:session?.cameraPose?.position||null,
+          cameraQuaternion:session?.cameraPose?.quaternion||null,
+          reason:detail&&detail.reason});
         if(samples.length>1200)samples.shift();
       }
       if(state===3&&!onceNormal){onceNormal=true;record('tracking-normal',{confidence});}
@@ -240,18 +247,60 @@ function place(){
  const hits=session.hitTest(w*.5,h*.52,w,h);
  const verticalById=new Map(getVertical().map(a=>[a.id,a]));
  const hit=hits.find(a=>verticalById.has(a.anchorId)&&a.distance>.2&&a.distance<7);
- if(!hit){record('no-wall-hit',{planes:getVertical().length});setNote('No wall at crosshair. Aim at a detected wall and try again.');return;}
- const target=verticalById.get(hit.anchorId);
- const [x,y,z]=hit.position;
- const [nx,,nz]=hit.normal;
- const yaw=Math.atan2(nx,nz);
- // The rendered rectangle is fixed in world space after placement.
- // No arbitrary camera correction: we want to measure the actual Viro pose.
- scene.setNodePosition(frame,x+nx*.025,y,z+nz*.025);
+ if(hit){
+   const target=verticalById.get(hit.anchorId);
+   const [x,y,z]=hit.position;
+   const [nx,,nz]=hit.normal;
+   const yaw=Math.atan2(nx,nz);
+   scene.setNodePosition(frame,x+nx*.025,y,z+nz*.025);
+   scene.setNodeRotation(frame,0,yaw,0);
+   scene.setNodeVisible(frame,true);
+   placed=true;trackedAnchor=hit.anchorId;
+   record('placed-on-wall',{position:[x,y,z],normal:hit.normal,yaw,distance:hit.distance,confidenceAtPlacement:confidence,anchor:target});
+   renderStatus(true);
+   return;
+ }
+ if(verticalById.size){
+   record('no-wall-hit',{planes:verticalById.size});
+   setNote('No wall under crosshair. Aim at a detected wall and try again.');
+   return;
+ }
+ if(confidence!==3){
+   setNote('Move sideways until metric tracking is ready, then place test panel.');
+   return;
+ }
+ // This is a tracking-only reference, not a physical wall anchor.
+ // ViroArSession.cameraPose is the public, world-space 6DoF camera pose.
+ const pose=session.cameraPose;
+ if(!pose||!Array.isArray(pose.position)||!Array.isArray(pose.quaternion)){
+   record('manual-placement-error',{reason:'missing-pose'});
+   setNote('Camera pose unavailable. Move gently and place again.');
+   return;
+ }
+ const [cx,cy,cz]=pose.position;
+ const [qx,qy,qz,qw]=pose.quaternion;
+ const v=[0,0,-1],q=[qx,qy,qz];
+ const t=[2*(q[1]*v[2]-q[2]*v[1]),2*(q[2]*v[0]-q[0]*v[2]),2*(q[0]*v[1]-q[1]*v[0])];
+ const f=[v[0]+qw*t[0]+(q[1]*t[2]-q[2]*t[1]),
+          v[1]+qw*t[1]+(q[2]*t[0]-q[0]*t[2]),
+          v[2]+qw*t[2]+(q[0]*t[1]-q[1]*t[0])];
+ const len=Math.hypot(f[0],f[2]);
+ if(len<.01||![cx,cy,cz,...pose.quaternion].every(Number.isFinite)){
+   record('manual-placement-error',{reason:'invalid-pose'});
+   setNote('Camera pose not ready. Point at a wall and try again.');
+   return;
+ }
+ const fx=f[0]/len,fz=f[2]/len;
+ const distance=1.5; // approximate for this diagnostic only
+ const x=cx+fx*distance,y=cy,z=cz+fz*distance;
+ const yaw=Math.atan2(-fx,-fz);
+ scene.setNodePosition(frame,x,y,z);
  scene.setNodeRotation(frame,0,yaw,0);
  scene.setNodeVisible(frame,true);
- placed=true;trackedAnchor=hit.anchorId;
- record('placed',{position:[x,y,z],normal:hit.normal,yaw,distance:hit.distance,confidenceAtPlacement:confidence,anchor:target});
+ placed=true;trackedAnchor=null;
+ record('placed-manually',{position:[x,y,z],yaw,distance,confidenceAtPlacement:confidence,
+   note:'World-fixed diagnostic marker; no wall plane was detected.'});
+ setNote('Manual reference placed, not a detected wall. Move sideways and return to inspect drift.');
  renderStatus(true);
 }
 function reset(){
