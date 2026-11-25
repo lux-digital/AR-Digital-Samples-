@@ -93,10 +93,10 @@ function renderStatus(force=false){
   let info='Move sideways across a textured wall; do not just rotate the phone.';
   if(!active){title='Viro ready to start';info='Tap START CAMERA to begin.';}
   else if(placed){title=tracking===3?'Wall sample placed':'Tracking is limited';info=tracking===3?'Walk left/right and return. Does the rectangle stay fixed on the wall?':'Move slowly; Viro hides the sample if its camera pose is lost.';}
-  else if(tracking===3&&confidence===3&&walls.length){
+  else if(tracking===3&&confidence>=2&&walls.length){
     title='Wall detected — ready to place';
-    info='Point the centre crosshair at the wall and tap PLACE ON WALL.';
-  }else if(tracking===3&&confidence!==3){
+    info=confidence===3?'Aim the crosshair at the wall and tap PLACE ON WALL.':'Aim at wall and tap PLACE. Relative scale only until tracking improves.';
+  }else if(tracking===3&&confidence<2){
     title='Tracking — scale not reliable yet';
     info='Move sideways gently until the phone establishes metric position.';
   }else if(tracking===3){
@@ -111,7 +111,7 @@ function renderStatus(force=false){
   $('message').textContent=info;
   $('metrics').textContent='Pose '+trackingName+' · Scale '+(['none','rotation','relative','metric'][confidence]||'?')+
     ' · Vertical planes '+walls.length+' · Quality '+Math.round(quality*100)+'%';
-  placeButton.disabled=!active||placed||tracking!==3||confidence!==3||walls.length===0;
+  placeButton.disabled=!active||placed||tracking!==3||confidence<2||walls.length===0;
   resetButton.disabled=!active||!placed;
   startButton.textContent=active?'STOP CAMERA':'START CAMERA';
   $('hint').textContent=placed?'Walk sideways and return to your starting spot. Check for drift.':
@@ -192,7 +192,7 @@ async function start(){
  try {
   const motion=await motionPromise;
   record('motion-permission',{granted:motion});
-  if(!motion){setNote('Motion access denied. Allow Motion & Orientation Access in Safari, then retry.');active=false;return;}
+  if(!motion){active=false;setNote('Motion access denied. Allow Motion & Orientation Access in Safari, then retry.');return;}
   session=new ViroArSession({
     sceneApi:scene,detectPlanes:true,hideContentWhenLost:true,
     captureWidth:640,captureHeight:480,feedWidth:960,feedHeight:720,
@@ -235,7 +235,7 @@ function stop(){
  record('session-stopped');renderStatus(true);
 }
 function place(){
- if(!active||!session||tracking!==3||confidence!==3)return;
+ if(!active||!session||tracking!==3||confidence<2)return;
  const w=root.clientWidth,h=root.clientHeight;
  const hits=session.hitTest(w*.5,h*.52,w,h);
  const verticalById=new Map(getVertical().map(a=>[a.id,a]));
@@ -251,7 +251,7 @@ function place(){
  scene.setNodeRotation(frame,0,yaw,0);
  scene.setNodeVisible(frame,true);
  placed=true;trackedAnchor=hit.anchorId;
- record('placed',{position:[x,y,z],normal:hit.normal,yaw,distance:hit.distance,anchor:target});
+ record('placed',{position:[x,y,z],normal:hit.normal,yaw,distance:hit.distance,confidenceAtPlacement:confidence,anchor:target});
  renderStatus(true);
 }
 function reset(){
