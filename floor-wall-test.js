@@ -98,17 +98,17 @@ window.createLuxFloorWallTest=function(THREE){
   const rotateButton=overlay.querySelector('.lux-floor-test-rotate');
   const placeButton=overlay.querySelector('.lux-floor-test-place');
   function refreshUI(){
-    const ready=active&&initialized&&trackingNormal;
+    const ready=active&&initialized; // allow an early manually aligned preview while SLAM converges
     overlay.classList.toggle('is-ready',ready);
-    overlay.classList.toggle('is-waiting',active&&!ready);
+    overlay.classList.toggle('is-waiting',active&&!initialized);
     overlay.classList.toggle('has-grid',active&&initialized);
     placeButton.disabled=!ready;
     if(!initialized){
       trackTitle.textContent='Finding floor';
       trackDetail.textContent='Move your phone slowly across the floor';
     }else if(!trackingNormal){
-      trackTitle.textContent='Tracking paused';
-      trackDetail.textContent='Move slowly until tracking recovers';
+      trackTitle.textContent='Preview ready';
+      trackDetail.textContent='Move gently to improve wall tracking';
     }
   }
 
@@ -116,7 +116,7 @@ window.createLuxFloorWallTest=function(THREE){
   const temp=new THREE.Vector3(),forward=new THREE.Vector3();
   const cameraPos=new THREE.Vector3();
   let active=false,placed=false,trackingNormal=false,normalSince=0;
-  let initialized=false,adjusted=false;
+  let initialized=false,adjusted=false,provisional=false,startedAt=0;
   let lastCamera=null,lastCameraAt=0,lastJump=null,attempts=0;
   let pointer=null,lastMessage='',lastMessageAt=0;
   let lastCameraForPlace=null,onPlacement=null;
@@ -128,7 +128,7 @@ window.createLuxFloorWallTest=function(THREE){
     if(value!==lastMessage){lastMessage=value;message.textContent=value;}
   }
   function isReady(){
-    return active && initialized && trackingNormal;
+    return active && initialized;
   }
   function floorHit(camera,x,y){
     if(!camera)return null;
@@ -162,6 +162,7 @@ window.createLuxFloorWallTest=function(THREE){
     if(toCamera.lengthSq()<.0001)toCamera.copy(forward).negate();
     wall.rotation.y=Math.atan2(toCamera.x,toCamera.z);
     initialized=true;
+    provisional=!trackingNormal;
     group.visible=true;
     rotateButton.style.display='block';
     refreshUI();
@@ -169,10 +170,10 @@ window.createLuxFloorWallTest=function(THREE){
       x:hit.x,z:hit.z,yaw:wall.rotation.y,groundY:0,
       source:'ground-ray-or-forward'
     });
-    setMessage('Drag grid to move · ↻ to rotate');
+    setMessage(trackingNormal?'Drag grid to move · ↻ to rotate':'Align grid · Move gently for better tracking');
   }
   function resetAlignment(){
-    initialized=false;adjusted=false;pointer=null;lastCameraForPlace=null;
+    initialized=false;adjusted=false;provisional=false;pointer=null;lastCameraForPlace=null;
     wall.position.set(0,0,0);
     wall.rotation.set(0,0,0);
     group.visible=false;
@@ -185,7 +186,7 @@ window.createLuxFloorWallTest=function(THREE){
     if(active){
       placed=false;
       resetAlignment();
-      normalSince=0;trackingNormal=false;
+      normalSince=0;trackingNormal=false;startedAt=performance.now();
       lastCamera=null;lastCameraAt=0;lastJump=null;
       setMessage('Move your phone slowly to establish floor tracking');
       note('floor-test-started',{method:'interactive-vertical-plane',groundY:0});
@@ -222,10 +223,6 @@ window.createLuxFloorWallTest=function(THREE){
     pointer.lastX=e.clientX;pointer.lastY=e.clientY;
     if(Math.abs(dx)+Math.abs(dy)<.01)return true;
     pointer.moved=true;
-    if(!trackingNormal){
-      setMessage('Tracking limited. Hold still until the floor stabilizes.');
-      return true;
-    }
     if(pointer.mode==='rotate'){
       // Linear manual rotation, no automatic reorientation or smoothing drift.
       wall.rotation.y+=dx*.009;
@@ -272,8 +269,7 @@ window.createLuxFloorWallTest=function(THREE){
   function confirm(){
     attempts++;
     if(!isReady()){
-      setMessage('Wait until floor tracking is stable before placing.');
-      note('floor-live-rejected',{reason:'tracking-limited'});
+      setMessage('Aim at your wall; an adjustable grid will appear shortly.');
       return {action:'wait'};
     }
     const pose={
@@ -281,7 +277,7 @@ window.createLuxFloorWallTest=function(THREE){
       rotation:new THREE.Euler(0,wall.rotation.y,0),
       detected:false,confidence:null,
       source:'floor-live-plane',
-      groundY:0
+      provisional:!trackingNormal,groundY:0
     };
     placed=true;active=false;
     group.visible=false; // LUX cladding replaces the alignment grid.
@@ -314,9 +310,14 @@ window.createLuxFloorWallTest=function(THREE){
       if(lastCamera){
         const dt=now-lastCameraAt;
         const delta=temp.distanceTo(lastCamera);
-        if(dt>0&&dt<600&&delta>.80){
+        if(dt>0&&dt<250&&delta>.80){
           lastJump={deltaMeters:delta,elapsedMs:Math.round(dt),at:Math.round(now)};
           note('floor-test-camera-jump',lastJump);
+          // Preserve the preview's apparent alignment across XR origin relocalization.
+          if(active&&initialized&&provisional){
+            wall.position.x+=temp.x-lastCamera.x;
+            wall.position.z+=temp.z-lastCamera.z;
+          }
         }
       }
       if(!lastCamera)lastCamera=temp.clone();
@@ -325,9 +326,14 @@ window.createLuxFloorWallTest=function(THREE){
     }
     if(!active)return;
     lastCameraForPlace=camera||lastCameraForPlace;
-    // 8th Wall already declares NORMAL when SLAM is initialized.
-    // Don't add another arbitrary 600ms delay before showing the grid.
-    if(trackingNormal&&!initialized)initialize(camera);
+    // Display an adjustable preview immediately, before SLAM has enough parallax.
+    // When reliable tracking arrives, recenter only if the user has not aligned it.
+    if(!initialized&&camera&&(trackingNormal||now-startedAt>700))initialize(camera);
+    if(initialized&&provisional&&trackingNormal){
+      if(!adjusted){initialized=false;initialize(camera);}
+      provisional=false;
+      setMessage('Drag grid to move · ↻ to rotate');
+    }
     refreshUI();
     // Rotate button follows the projected base of the world-space wall.
     if(initialized&&camera){
@@ -343,12 +349,12 @@ window.createLuxFloorWallTest=function(THREE){
     }
     if(now-lastMessageAt>1350){
       lastMessageAt=now;
-      if(initialized&&trackingNormal)setMessage('Drag grid to move · ↻ to rotate');
+      if(initialized)setMessage(trackingNormal?'Drag grid to move · ↻ to rotate':'Align grid · Move gently for better tracking');
     }
   }
   function getDebug(){
     return{
-      mode:'floor-live-plane',groundY:0,trackingNormal,
+      mode:'floor-live-plane',groundY:0,trackingNormal,provisional,
       phase:placed?'placed':initialized?'adjusting':'waiting-for-floor',
       initialized,adjusted,dragCount,rotateCount,
       x:initialized||placed?wall.position.x:null,
@@ -358,7 +364,7 @@ window.createLuxFloorWallTest=function(THREE){
     };
   }
   function stop(){
-    active=false;placed=false;trackingNormal=false;normalSince=0;
+    active=false;placed=false;trackingNormal=false;normalSince=0;startedAt=0;
     resetAlignment();
     overlay.classList.remove('is-active','is-placed','is-ready','is-waiting','has-grid');
   }
