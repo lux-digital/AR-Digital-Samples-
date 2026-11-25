@@ -495,18 +495,26 @@
     tell('Sample reset',1800);
   }
   // Reset and Help are intentionally absent from the streamlined AR interface.
-  function closeArPanel() {
-    document.querySelector('.config-panel').classList.remove('panel-open');
+  const configPanel=document.querySelector('.config-panel');
+  function closeArPanel(){
+    configPanel.classList.remove('panel-open');
     document.body.classList.remove('ar-panel-open');
-    $('customize').textContent='FINISHES';
+    $('customize').textContent='COLOURS';
+    $('profiles-button').textContent='PROFILES';
   }
-  function toggleArPanel() {
-    if (!arRunning || !arPlaced) return;
-    const isOpen=document.querySelector('.config-panel').classList.toggle('panel-open');
-    document.body.classList.toggle('ar-panel-open',isOpen);
-    $('customize').textContent=isOpen?'HIDE FINISHES':'FINISHES';
+  function toggleArPanel(tab){
+    if(!arRunning||!arPlaced)return;
+    const same=configPanel.classList.contains('panel-open')&&configPanel.dataset.tab===tab;
+    if(same){closeArPanel();return;}
+    configPanel.dataset.tab=tab;
+    configPanel.classList.add('panel-open');
+    document.body.classList.add('ar-panel-open');
+    $('panel-title').textContent=tab==='profiles'?'Choose a profile.':'Choose a colour.';
+    $('customize').textContent=tab==='colours'?'CLOSE':'COLOURS';
+    $('profiles-button').textContent=tab==='profiles'?'CLOSE':'PROFILES';
   }
-  $('customize').onclick=toggleArPanel;
+  $('customize').onclick=()=>toggleArPanel('colours');
+  $('profiles-button').onclick=()=>toggleArPanel('profiles');
   $('close-panel').onclick=closeArPanel;
   function fitARSampleToScreen(distance) {
     // Match the actual tracking camera's field of view; don't estimate it from CSS pixels.
@@ -535,6 +543,8 @@
     document.body.classList.add('placing');
     $('reposition').hidden=true;
     $('customize').hidden=true;
+    $('profiles-button').hidden=true;
+    $('screenshot').hidden=true;
     tell(floorTestMode?
       'FLOOR TEST: Drag the grid to align; rotate with ↻; tap PLACE WALL.' :
       'Scan the floor–wall seam or use two taps to align manually.');
@@ -564,8 +574,11 @@
     document.body.classList.remove('placing');
     $('reposition').hidden=false;
     $('customize').hidden=false;
+    $('profiles-button').hidden=false;
+    $('screenshot').hidden=false;
     if(depthOcclusion)depthOcclusion.setPlaced(true);
-    tell(pose.source==='floor-live-plane'||pose.source==='floor-two-point'
+    tell(pose.provisional?'Sample ready • move gently to improve tracking':
+      pose.source==='floor-live-plane'||pose.source==='floor-two-point'
       ? 'Floor-anchored test: walk sideways and check alignment and stability.'
       : pose.source==='confirmed'
       ? 'Seam and 3D wall cues agreed. Check the sample from several angles.'
@@ -628,6 +641,57 @@
   }
   $('reposition').onclick=startPlacing;
 
+  // Share a customer-friendly still of the AR sample, not diagnostics or UI.
+  const shotSheet=$('lux-shot-sheet');
+  const shotImage=$('lux-shot-image');
+  const sharePhotoButton=$('lux-shot-share');
+  const savePhotoButton=$('lux-shot-save');
+  function closePhoto(){
+    shotSheet.hidden=true;
+    shotImage.removeAttribute('src');
+    if(photoUrl){URL.revokeObjectURL(photoUrl);photoUrl=null;}
+    photoFile=null;
+  }
+  $('lux-shot-close').onclick=closePhoto;
+  shotSheet.addEventListener('click',event=>{if(event.target===shotSheet)closePhoto();});
+  $('screenshot').onclick=async()=>{
+    if(!arRunning||!arPlaced||takingPhoto)return;
+    takingPhoto=true;
+    $('screenshot').disabled=true;
+    try{
+      const capture=window.XR8&&window.XR8.CanvasScreenshot;
+      if(!capture||typeof capture.takeScreenshot!=='function')
+        throw new Error('Screenshot capture is unavailable on this device.');
+      const image=await capture.takeScreenshot();
+      const data=atob(String(image).split(',').pop());
+      const bytes=new Uint8Array(data.length);
+      for(let i=0;i<data.length;i++)bytes[i]=data.charCodeAt(i);
+      closePhoto();
+      photoFile=new File([bytes],'LUX-Digital-Sample.jpg',{type:'image/jpeg'});
+      photoUrl=URL.createObjectURL(photoFile);
+      shotImage.src=photoUrl;
+      savePhotoButton.href=photoUrl;
+      savePhotoButton.download=photoFile.name;
+      sharePhotoButton.hidden=!(navigator.share&&navigator.canShare&&navigator.canShare({files:[photoFile]}));
+      $('lux-shot-help').textContent='Share with a coworker or save for a moodboard.';
+      shotSheet.hidden=false;
+    }catch(error){
+      console.warn('LUX sample screenshot',error);
+      tell('Could not capture sample: '+(error.message||String(error)),4500);
+    }finally{
+      takingPhoto=false;
+      $('screenshot').disabled=false;
+    }
+  };
+  sharePhotoButton.onclick=async()=>{
+    if(!photoFile||!navigator.share)return;
+    try{await navigator.share({files:[photoFile],title:'LUX Digital Sample'});}
+    catch(error){
+      if(error.name!=='AbortError')
+        $('lux-shot-help').textContent='Share unavailable. Try Save Photo or long-press the image.';
+    }
+  };
+
   function setMode(ar) {
     closeArPanel();
     stage.classList.toggle('ar-mode',ar);
@@ -638,6 +702,8 @@
     $('start-ar').hidden=ar;
      $('reposition').hidden=true;
     $('customize').hidden=true;
+    $('profiles-button').hidden=true;
+    $('screenshot').hidden=true;
     $('close-panel').hidden=!ar;
     previewCanvas.hidden=ar;
     cameraCanvas.hidden=!ar;
@@ -679,6 +745,8 @@
       ...(pixelModule?[pixelModule]:[]),
       XR8.GlTextureRenderer.pipelineModule(),
       XR8.Threejs.pipelineModule(),
+      ...(XR8.CanvasScreenshot&&typeof XR8.CanvasScreenshot.pipelineModule==='function'
+        ?[XR8.CanvasScreenshot.pipelineModule()]:[]),
       XR8.XrController.pipelineModule(),
       // Required on Safari: synchronize viewport and WebGL drawing buffer with
       // the full-screen canvas, including orientation and browser-bar changes.
