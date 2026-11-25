@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="LUX AR Samples">
   <link rel="apple-touch-icon" href="./icon.png?v=1">
   <link rel="icon" type="image/png" href="./icon.png?v=1">
-  <link rel="stylesheet" href="./styles.css?v=14">
+  <link rel="stylesheet" href="./styles.css?v=16">
   <link rel="stylesheet" href="./splash.css?v=11">
 </head>
 <body class="splash-visible">
@@ -52,13 +52,26 @@
       <div class="stage-bottom-actions">
         <button id="start-ar" class="primary-button">START AR <span class="button-icon">↗</span></button>
         <button id="reposition" class="outline-button" hidden>REPOSITION</button>
-        <button id="customize" class="primary-button" hidden>FINISHES</button>
+        <button id="customize" class="primary-button" hidden>COLOURS</button>
+        <button id="profiles-button" class="outline-button" hidden>PROFILES</button>
+        <button id="screenshot" class="outline-button lux-shot-trigger" type="button" hidden aria-label="Take photo of digital sample" title="Capture sample to share"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h4l2-2h4l2 2h4v12H4z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.4" fill="none" stroke="currentColor" stroke-width="1.7"/></svg></button>
+      </div>
+      <div class="lux-shot-sheet" id="lux-shot-sheet" hidden role="dialog" aria-modal="true" aria-label="Share digital sample photo">
+        <div class="lux-shot-card">
+          <div class="lux-shot-title"><strong>Your digital sample</strong><button id="lux-shot-close" type="button" aria-label="Close photo preview">×</button></div>
+          <img id="lux-shot-image" alt="Photo of your LUX digital sample placed in your room">
+          <p id="lux-shot-help">Share with a coworker or save for a moodboard.</p>
+          <div class="lux-shot-actions">
+            <a id="lux-shot-save" href="#" download="LUX-Digital-Sample.jpg">SAVE PHOTO</a>
+            <button id="lux-shot-share" type="button">SHARE PHOTO</button>
+          </div>
+        </div>
       </div>
     </div>
     <section class="config-panel" aria-label="Customize LUX digital sample">
-      <button id="close-panel" class="panel-close-button" type="button" hidden aria-label="Close finish selector">×</button>
+      <button id="close-panel" class="panel-close-button" type="button" hidden aria-label="Close selector">×</button>
       <div class="panel-top">
-        <div><span class="eyebrow">LUX COLLECTION</span><h1>Find your finish.</h1></div>
+        <div><span class="eyebrow">LUX COLLECTION</span><h1 id="panel-title">Find your finish.</h1></div>
         <div class="dimensions" id="dimensions">1.60 × 1.10 m</div>
       </div>
       <div class="section-heading"><h2>Profile</h2><span id="profile-count">01 / 05</span></div>
@@ -76,9 +89,9 @@
   <script src="https://cdn.jsdelivr.net/npm/@8thwall/xrextras@1/dist/xrextras.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js" async crossorigin="anonymous" data-preload-chunks="slam"></script>
   <script src="./wall-guide.js?v=5" defer></script>
-  <script src="./floor-wall-test.js?v=2" defer></script>
+  <script src="./floor-wall-test.js?v=6" defer></script>
   <script src="./diagnostics.js?v=3" defer></script>
-  <script src="./app.js?v=14" defer></script>
+  <script src="./app.js?v=17" defer></script>
   <script src="./splash.js?v=4" defer></script>
   <!-- Copyright (c) Niantic Spatial, Inc. 8th Wall Engine Binary used under its license.
        https://github.com/8thwall/engine/blob/main/LICENSE -->
