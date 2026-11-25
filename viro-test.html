@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#090a0a">
+<title>LUX | Viro Wall Tracking Test</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080b0d;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button{font:inherit;touch-action:manipulation;cursor:pointer}
+#viro-canvas{position:fixed;inset:0;width:100vw;height:100dvh;touch-action:none;display:block;background:#11191b}
+header{position:fixed;top:0;left:0;right:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:calc(env(safe-area-inset-top) + 13px) 18px 12px;background:linear-gradient(#090b0cbd,#090b0c00);pointer-events:none}
+header img{width:103px;max-height:50px;object-fit:contain;object-position:left}
+h1{font-size:10px;font-weight:800;letter-spacing:1.6px;margin:0;text-align:right}
+h1 small{display:block;font-size:9px;letter-spacing:.4px;font-weight:500;color:#c6d0cc;margin-top:6px}
+#track{position:fixed;z-index:6;top:calc(env(safe-area-inset-top) + 86px);left:50%;transform:translateX(-50%);width:min(370px,calc(100% - 36px));border:1px solid #ffffff44;border-radius:13px;padding:12px 15px;background:#141a1dd9;box-shadow:0 7px 24px #0007;pointer-events:none}
+#track strong{font-size:13px;letter-spacing:.3px}#message{display:block;color:#dae2de;font-size:11px;line-height:1.5;margin-top:4px}
+#metrics{display:block;color:#a2d4b5;font-size:10px;margin-top:6px;font-variant-numeric:tabular-nums}
+#crosshair{position:fixed;left:50%;top:52%;height:44px;width:44px;transform:translate(-50%,-50%);z-index:4;pointer-events:none;opacity:.85}
+#crosshair:before,#crosshair:after{content:"";position:absolute;background:#fff;box-shadow:0 0 5px #1a1a1a}#crosshair:before{height:2px;width:38px;top:21px;left:3px}#crosshair:after{width:2px;height:38px;top:3px;left:21px}
+#crosshair span{position:absolute;inset:12px;border:1px solid #ffffffb0;border-radius:50%}
+#bottom{position:fixed;left:0;right:0;bottom:0;z-index:6;padding:20px 14px max(20px,env(safe-area-inset-bottom));background:linear-gradient(transparent,#000c 45%,#000e);text-align:center}
+#bottom p{margin:0 0 13px;font-size:12px;line-height:1.45;color:#e9f3ed}
+#actions{display:flex;justify-content:center;gap:9px;max-width:440px;margin:auto}
+#actions button{flex:1;min-height:48px;border:1px solid #ffffff6e;border-radius:9px;background:#1d2224de;color:white;font-weight:750;font-size:11px;letter-spacing:.5px;padding:9px 7px}
+#actions button.red{background:#d32132;border-color:#d32132}
+#actions button:disabled{opacity:.45}
+#report{margin-top:12px;border:0;color:#b8c6c5;background:none;font-size:10px;text-decoration:underline;padding:7px 15px}
+#cover{position:fixed;inset:0;z-index:7;display:grid;place-items:center;background:#090e11e9;padding:25px;text-align:center}
+#cover[hidden]{display:none}
+#cover .inner{max-width:350px}
+#cover h2{font-size:23px;margin:0 0 12px;letter-spacing:-.7px}#cover p{font-size:13px;line-height:1.65;color:#d2dadd}
+#cover button{padding:14px 26px;border-radius:10px;background:#d32132;border:0;color:white;font-weight:800;letter-spacing:.5px}
+#cover button:disabled{opacity:.5}
+#fatal{color:#ffd7d7;font-size:12px;line-height:1.5;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<canvas id="viro-canvas" aria-label="Viro visual-inertial camera and wall tracking"></canvas>
+<header>
+  <img src="./LUX%20Logo%20white.png" alt="LUX">
+  <h1>VIRO WALL TEST <small>Separate tracking engine · No LiDAR</small></h1>
+</header>
+<div id="track" role="status" aria-live="polite">
+  <strong id="headline">Preparing Viro…</strong>
+  <span id="message">Loading the open-source browser tracking engine.</span>
+  <span id="metrics">Tracking — · Vertical planes —</span>
+</div>
+<div id="crosshair" aria-hidden="true"><span></span></div>
+<div id="bottom">
+  <p id="hint">The test measures whether a rectangle stays on a real wall while you walk sideways.</p>
+  <div id="actions">
+    <button id="start" class="red" disabled>START CAMERA</button>
+    <button id="place" disabled>PLACE ON WALL</button>
+    <button id="reset" disabled>RESET</button>
+  </div>
+  <button id="report" type="button">Save tracking report</button>
+</div>
+<div id="cover">
+  <div class="inner">
+    <h2>Viro tracking comparison</h2>
+    <p>Uses <strong>Viro's own camera + motion-sensor tracker</strong>, not 8th Wall. Slowly move sideways while facing a textured wall, then place the rectangle and walk around it.</p>
+    <p><strong>No app, developer account or LiDAR required.</strong> Camera and motion permissions are needed.</p>
+    <p id="fatal"></p>
+    <button id="ready" disabled>LOADING ENGINE…</button>
+  </div>
+</div>
+<script type="module">
+const CDN='https://cdn.jsdelivr.net/npm/@reactvision/viro-web-renderer@1.3.0';
+const root=document.getElementById('viro-canvas');
+const $=id=>document.getElementById(id);
+const readyButton=$('ready'),startButton=$('start'),placeButton=$('place'),resetButton=$('reset');
+let ViroWebRenderer,ViroArSession,requestDeviceMotionPermission,ViroLightingModel;
+let renderer=null,scene=null,session=null,frame=null;
+let tracking=1,confidence=0,quality=0,planes=[],lastUi=0,placed=false,active=false,trackedAnchor=null;
+const startedAt=performance.now(),events=[];
+let samples=[],lastSampleAt=0,onceNormal=false,onceVertical=false;
+let showMessage='';
+function record(type,data={}) {
+  const entry={timeMs:Math.round(performance.now()-startedAt),type,data};
+  events.push(entry);
+  if(events.length>1200)events.shift();
+}
+function setNote(v){showMessage=v;renderStatus(true);}
+function getVertical(){return planes.filter(p=>p.alignment==='Vertical'&&p.normal.every(Number.isFinite));}
+function renderStatus(force=false){
+  const now=performance.now();
+  if(!force&&now-lastUi<250)return;
+  lastUi=now;
+  const walls=getVertical();
+  const trackingName=tracking===3?'NORMAL':tracking===2?'LIMITED':'NOT READY';
+  let title='Move phone slowly to initialize tracking';
+  let info='Move sideways across a textured wall; do not just rotate the phone.';
+  if(!active){title='Viro ready to start';info='Tap START CAMERA to begin.';}
+  else if(placed){title=tracking===3?'Wall sample placed':'Tracking is limited';info=tracking===3?'Walk left/right and return. Does the rectangle stay fixed on the wall?':'Move slowly; Viro hides the sample if its camera pose is lost.';}
+  else if(tracking===3&&confidence>=2&&walls.length){
+    title='Wall detected — ready to place';
+    info=confidence===3?'Aim the crosshair at the wall and tap PLACE ON WALL.':'Aim at wall and tap PLACE. Relative scale only until tracking improves.';
+  }else if(tracking===3&&confidence<2){
+    title='Tracking — scale not reliable yet';
+    info='Move sideways gently until the phone establishes metric position.';
+  }else if(tracking===3){
+    title='Tracking active — looking for a wall';
+    info='Sweep left and right while keeping the wall in view.';
+  }else if(tracking===2){
+    title='Scanning the room';
+    info='Move slowly sideways with the wall and some floor visible.';
+  }
+  if(showMessage){info=showMessage;showMessage='';}
+  $('headline').textContent=title;
+  $('message').textContent=info;
+  $('metrics').textContent='Pose '+trackingName+' · Scale '+(['none','rotation','relative','metric'][confidence]||'?')+
+    ' · Vertical planes '+walls.length+' · Quality '+Math.round(quality*100)+'%';
+  placeButton.disabled=!active||placed||tracking!==3||confidence<2||walls.length===0;
+  resetButton.disabled=!active||!placed;
+  startButton.textContent=active?'STOP CAMERA':'START CAMERA';
+  $('hint').textContent=placed?'Walk sideways and return to your starting spot. Check for drift.':
+    'The rectangle only appears after Viro detects a real vertical plane.';
+}
+function createFrame(){
+  const parent=scene.createNode();
+  scene.addChildNode(scene.getRootNode(),parent);
+  const white=scene.createMaterial();
+  scene.setMaterialDiffuseColor(white,1,1,1,1);
+  scene.setMaterialLightingModel(white,ViroLightingModel.Constant);
+  const red=scene.createMaterial();
+  scene.setMaterialDiffuseColor(red,.93,.13,.2,1);
+  scene.setMaterialLightingModel(red,ViroLightingModel.Constant);
+  function bar(w,h,x,y,mat){
+    const geometry=scene.createBox(w,h,.015);
+    scene.setGeometryMaterial(geometry,mat);
+    const node=scene.createNode();
+    scene.setNodeGeometry(node,geometry);
+    scene.setNodePosition(node,x,y,0);
+    scene.addChildNode(parent,node);
+  }
+  const w=1.25,h=1.1;
+  bar(w,.018,0,h/2,white);bar(w,.018,0,-h/2,white);
+  bar(.018,h,-w/2,0,white);bar(.018,h,w/2,0,white);
+  bar(w,.008,0,0,red);bar(.008,h,0,0,red);
+  // Thin stripes provide reference points without large occluding surfaces.
+  bar(w,.005,0,h/4,white);bar(w,.005,0,-h/4,white);
+  scene.setNodeVisible(parent,false);
+  return parent;
+}
+function resize(){
+  if(!renderer)return;
+  const scale=Math.min(window.devicePixelRatio||1,1.4);
+  const w=Math.max(1,Math.round(innerWidth*scale)),h=Math.max(1,Math.round(innerHeight*scale));
+  renderer.resize(w,h);
+}
+async function load(){
+ try {
+  if(!isSecureContext)throw Error('HTTPS is required to access camera and motion sensors.');
+  if(!document.createElement('canvas').getContext('webgl2'))throw Error('This browser does not support WebGL2.');
+  const mod=await import(CDN+'/dist/index.js');
+  ({ViroWebRenderer,ViroArSession,requestDeviceMotionPermission,ViroLightingModel}=mod);
+  const assets=CDN+'/wasm/';
+  const scale=Math.min(devicePixelRatio||1,1.4);
+  renderer=await ViroWebRenderer.create({
+    canvas:root,width:Math.round(innerWidth*scale),height:Math.round(innerHeight*scale),
+    assetBaseUrl:assets,
+    importGlue:()=>import(assets+'viro-web.js'),
+    locateFile:p=>assets+p,
+    onAbort:msg=>{record('renderer-abort',{message:String(msg)});$('fatal').textContent='Renderer stopped: '+msg;}
+  });
+  scene=renderer.scene;
+  frame=createFrame();
+  window.addEventListener('resize',resize);
+  readyButton.disabled=false;readyButton.textContent='START VIRO TEST';
+  startButton.disabled=false;
+  $('headline').textContent='Viro engine loaded';
+  $('message').textContent='Ready to request camera and motion permissions.';
+  record('renderer-ready',{packageVersion:'1.3.0',browser:navigator.userAgent});
+  renderStatus(true);
+ }catch(err){
+  const msg=String(err&&err.message||err);
+  record('startup-error',{message:msg});
+  $('fatal').textContent='Cannot start: '+msg;
+  readyButton.textContent='ENGINE ERROR';
+  $('headline').textContent='Viro did not load';
+  $('message').textContent=msg;
+ }
+}
+async function start(){
+ if(active){stop();return;}
+ if(!scene){setNote('Viro is still loading.');return;}
+ // This MUST run directly from the user's tap on iOS, before any await.
+ const motionPromise=requestDeviceMotionPermission();
+ active=true;placed=false;planes=[];tracking=1;quality=0;confidence=0;
+ scene.setNodeVisible(frame,false);renderStatus(true);
+ try {
+  const motion=await motionPromise;
+  record('motion-permission',{granted:motion});
+  if(!motion){active=false;setNote('Motion access denied. Allow Motion & Orientation Access in Safari, then retry.');return;}
+  session=new ViroArSession({
+    sceneApi:scene,detectPlanes:true,hideContentWhenLost:true,
+    captureWidth:640,captureHeight:480,feedWidth:960,feedHeight:720,
+    slamBaseUrl:CDN+'/slam/',
+    onStatus:(state,q,detail)=>{
+      tracking=state;quality=Number(q)||0;
+      confidence=detail&&Number.isFinite(detail.confidence)?detail.confidence:0;
+      const t=performance.now();
+      if(t-lastSampleAt>500){
+        lastSampleAt=t;
+        samples.push({ms:Math.round(t-startedAt),tracking,quality:Math.round(quality*100)/100,
+          confidence,vertical:getVertical().length,reason:detail&&detail.reason});
+        if(samples.length>1200)samples.shift();
+      }
+      if(state===3&&!onceNormal){onceNormal=true;record('tracking-normal',{confidence});}
+      renderStatus();
+    },
+    onAnchorsUpdated:(anchors)=>{
+      planes=anchors||[];
+      const count=getVertical().length;
+      if(count&&!onceVertical){onceVertical=true;record('first-vertical-plane',{count});}
+      renderStatus();
+    },
+    onError:err=>{record('tracking-error',{message:String(err)});setNote('Tracking error: '+String(err.message||err));}
+  });
+  await session.start();
+  record('session-started',{motion});
+  renderStatus(true);
+ }catch(err){
+  record('session-start-failed',{message:String(err)});
+  setNote('Could not start Viro: '+String(err.message||err));
+  try{session?.stop();}catch(_){}
+  session=null;active=false;renderStatus(true);
+ }
+}
+function stop(){
+ try{session?.stop();}catch(err){record('stop-error',{message:String(err)});}
+ session=null;active=false;placed=false;planes=[];tracking=1;confidence=0;
+ scene.setNodeVisible(frame,false);
+ record('session-stopped');renderStatus(true);
+}
+function place(){
+ if(!active||!session||tracking!==3||confidence<2)return;
+ const w=root.clientWidth,h=root.clientHeight;
+ const hits=session.hitTest(w*.5,h*.52,w,h);
+ const verticalById=new Map(getVertical().map(a=>[a.id,a]));
+ const hit=hits.find(a=>verticalById.has(a.anchorId)&&a.distance>.2&&a.distance<7);
+ if(!hit){record('no-wall-hit',{planes:getVertical().length});setNote('No wall at crosshair. Aim at a detected wall and try again.');return;}
+ const target=verticalById.get(hit.anchorId);
+ const [x,y,z]=hit.position;
+ const [nx,,nz]=hit.normal;
+ const yaw=Math.atan2(nx,nz);
+ // The rendered rectangle is fixed in world space after placement.
+ // No arbitrary camera correction: we want to measure the actual Viro pose.
+ scene.setNodePosition(frame,x+nx*.025,y,z+nz*.025);
+ scene.setNodeRotation(frame,0,yaw,0);
+ scene.setNodeVisible(frame,true);
+ placed=true;trackedAnchor=hit.anchorId;
+ record('placed',{position:[x,y,z],normal:hit.normal,yaw,distance:hit.distance,confidenceAtPlacement:confidence,anchor:target});
+ renderStatus(true);
+}
+function reset(){
+ if(!active)return;
+ scene.setNodeVisible(frame,false);placed=false;trackedAnchor=null;
+ record('reset');renderStatus(true);
+}
+function saveReport(){
+ const out={
+   format:'LUX_VIRO_TRACKING_TEST_V1',generatedAt:new Date().toISOString(),
+   package:'@reactvision/viro-web-renderer@1.3.0',
+   device:navigator.userAgent,screen:{width:innerWidth,height:innerHeight,dpr:devicePixelRatio},
+   note:'Tracking telemetry only; camera images are not saved.',events,samples
+ };
+ const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement('a');
+ a.href=url;a.download='lux-viro-tracking-'+new Date().toISOString().replace(/[:.]/g,'-')+'.json';
+ document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),2000);
+}
+readyButton.addEventListener('click',()=>{
+ $('cover').hidden=true;
+ if(!active)start();
+});
+startButton.addEventListener('click',start);
+placeButton.addEventListener('click',place);
+resetButton.addEventListener('click',reset);
+$('report').addEventListener('click',saveReport);
+window.addEventListener('pagehide',()=>{if(active)stop();});
+window.addEventListener('error',e=>record('window-error',{message:e.message}));
+window.addEventListener('unhandledrejection',e=>record('unhandled-rejection',{message:String(e.reason)}));
+load();
+</script>
+</body>
+</html>
