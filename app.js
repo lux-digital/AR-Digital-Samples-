@@ -643,6 +643,9 @@
 
   // Share a customer-friendly still of the AR sample, not diagnostics or UI.
   const shotSheet=$('lux-shot-sheet');
+  // The full-screen XR canvas and the editor live in separate stacking contexts.
+  // Move the photo preview above both so it is always accessible on iPhone.
+  document.body.appendChild(shotSheet);
   const shotImage=$('lux-shot-image');
   const sharePhotoButton=$('lux-shot-share');
   const savePhotoButton=$('lux-shot-save');
