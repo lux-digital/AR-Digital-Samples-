@@ -24,6 +24,8 @@ targets:
         INFOPLIST_KEY_NSCameraUsageDescription: "Place West Coast Naturals products on real walls."
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIRequiredDeviceCapabilities: arkit
+    dependencies:
+      - target: LUXSamplesClip
   LUXSamplesClip:
     type: application.on-demand-install-capable
     platform: iOS
