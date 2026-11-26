@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - main
-      - quicklook-four-step-reveal-20261126
     paths:
       - 'tools/build_quicklook_profile.py'
       - '.github/workflows/build-quicklook-profile.yml'
