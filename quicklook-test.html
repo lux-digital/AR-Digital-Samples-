@@ -11,7 +11,7 @@ p{color:#c6d0c9;font-size:14px}strong{color:#fff}
 .sample:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent,transparent calc(20% - 2px),#241b1558 calc(20% - 2px),#241b1558 20%)}
 .caption{font-size:11px;color:#abb7ad;margin:8px 0 23px}
 #open{display:flex;gap:11px;align-items:center;justify-content:center;text-decoration:none;background:#c51d36;color:#fff;padding:15px 12px;border-radius:12px;font-weight:800;letter-spacing:.25px;text-align:center;min-height:62px}
-#open[aria-disabled="true"]{opacity:.5;pointer-events:none}#open img{height:25px;width:25px;object-fit:contain}
+#open[aria-disabled="true"]{opacity:.5;pointer-events:none}#open img{height:25px;width:25px;object-fit:contain}#open:after{content:attr(data-label);font-size:15px}
 #status{font-size:12px;min-height:38px}#download{font-size:12px;color:#eceeeb}
 .instructions{display:grid;gap:10px;margin-top:24px}.instructions>div{background:#1f2722;border:1px solid #39443c;border-radius:10px;padding:11px 14px;font-size:13px;color:#dae4dc}
 .warn{font-size:12px;color:#aebcb0;border-left:2px solid #8c9b90;padding-left:12px;margin-top:20px}
@@ -20,7 +20,7 @@ p{color:#c6d0c9;font-size:14px}strong{color:#fff}
 <h1>West Coast Naturals<br>Apple AR test</h1>
 <p>This test uses <strong>Apple's native AR Quick Look</strong> rather than the drifting WebAR engines. It uses the real <strong>Heartwood LAP</strong> texture from the LUX repository.</p>
 <div class="sample"></div><div class="caption">Source texture: Heartwood/LAP HEARTWOOD.jpg. Fixed UV mapping — never tiled.</div>
-<a id="open" href="#" rel="ar" aria-disabled="true"><img src="./ICONS/EXPAND.png" alt=""><span id="open-label">PREPARING USDZ…</span></a>
+<a id="open" href="#" rel="ar" aria-disabled="true" data-label="PREPARING USDZ…" aria-label="Prepare Quick Look test"><img src="./ICONS/EXPAND.png" alt="Open Quick Look test"></a>
 <p id="status" role="status">Creating a self-contained native AR file using the existing woodgrain.</p>
 <a id="download" hidden href="#" download="lux-heartwood-quicklook.usdz">Save USDZ to Files (alternative launch)</a>
 <div class="instructions">
@@ -34,7 +34,7 @@ p{color:#c6d0c9;font-size:14px}strong{color:#fff}
 <script>
 (function(){
 'use strict';
-const status=document.getElementById('status'),link=document.getElementById('open'),label=document.getElementById('open-label'),download=document.getElementById('download');
+const status=document.getElementById('status'),link=document.getElementById('open'),download=document.getElementById('download');
 const enc=new TextEncoder(),B='/LUX';
 function fmt(n){return Number(n.toFixed(6));}
 function plane(name,x0,y0,x1,y1,z,mat,vis){
@@ -171,13 +171,13 @@ function zip(files){
   const raw=zip([['scene.usda',enc.encode(scene())],['heartwood.jpg',jpg]]);
   const url=URL.createObjectURL(new Blob([raw],{type:'model/vnd.usdz+zip'}));
   link.href=url;link.download='lux-heartwood-quicklook.usdz';link.setAttribute('aria-disabled','false');
-  label.textContent='OPEN APPLE AR QUICK LOOK';
+  link.dataset.label='OPEN APPLE AR QUICK LOOK';link.setAttribute('aria-label','Open Apple AR Quick Look');
   download.href=url;download.hidden=false;
   status.textContent='Ready: '+Math.round(raw.length/1024)+' KB. Four USDZ tap behaviours and vertical-wall anchoring requested.';
  }catch(err){
   console.error('[LUX USDZ]',err);
   status.textContent='Failed to build Quick Look file: '+String(err.message||err);
-  label.textContent='QUICK LOOK NOT AVAILABLE';
+  link.dataset.label='QUICK LOOK NOT AVAILABLE';
  }
 })();
 })();
