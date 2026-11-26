@@ -11,6 +11,9 @@ on:
       - 'Textures/Heartwood/LAP HEARTWOOD.jpg'
       - 'Textures/Heartwood/TRIM HEARTWOOD.jpg'
   workflow_dispatch:
+concurrency:
+  group: quicklook-mask-build-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: write
 jobs:
@@ -48,6 +51,11 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Earlier runs may have committed stale output after checkout.
+          # Refresh all source files before the final build, then commit only models.
+          git fetch origin "${GITHUB_REF_NAME}"
+          git reset --hard "origin/${GITHUB_REF_NAME}"
+          python tools/build_quicklook_mask.py
           git add quicklook/lux-mask-test-0.usdz quicklook/lux-mask-test-1.usdz quicklook/lux-mask-test-2.usdz
           if ! git diff --cached --quiet; then
             git commit -m "Generate single-LUX-model moving mask test USDZ"
