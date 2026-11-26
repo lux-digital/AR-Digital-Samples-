@@ -188,7 +188,9 @@ final class LUXARController: ObservableObject {
             }
             source = try JSONDecoder().decode(LUXSourceMesh.self, from: Data(contentsOf: url))
             let tex = try TextureResource.load(named: "heartwood.jpg")
-            textureMaterial = UnlitMaterial(texture: tex)
+            var unlit = UnlitMaterial()
+            unlit.color = .init(tint: .white, texture: .init(tex))
+            textureMaterial = unlit
             status = "Full LUX profile loaded. Aim at a wall and tap PLACE."
         } catch {
             status = "Could not load LUX geometry: \(error.localizedDescription)"
