@@ -2,10 +2,13 @@ name: Build LUX Quick Look real profile prototypes
 on:
   push:
     branches:
-      - quicklook-real-lap-profile-20261126
+      - main
     paths:
       - 'tools/build_quicklook_profile.py'
       - '.github/workflows/build-quicklook-profile.yml'
+      - 'Profiles/V-GRROOVE_LAP.glb'
+      - 'Textures/Heartwood/LAP HEARTWOOD.jpg'
+      - 'Textures/Heartwood/TRIM HEARTWOOD.jpg'
   workflow_dispatch:
 permissions:
   contents: write
@@ -38,12 +41,12 @@ jobs:
                       assert stage.GetPrimAtPath('/LUXRealLap/Controls/Handle'+side).IsValid(), side
               print('OpenUSD validation passed',filename)
           PY
-      - name: Commit the hosted USDZ assets into test branch
+      - name: Commit generated USDZ assets for GitHub Pages
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add quicklook/lux-real-lap-wall.usdz quicklook/lux-real-lap-resize.usdz
           if ! git diff --cached --quiet; then
             git commit -m "Generate real-profile wall and four-handle Quick Look models"
-            git push origin HEAD:quicklook-real-lap-profile-20261126
+            git push origin HEAD:main
           fi
