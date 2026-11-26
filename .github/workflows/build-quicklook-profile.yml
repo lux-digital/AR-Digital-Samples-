@@ -45,11 +45,15 @@ jobs:
                           assert stage.GetPrimAtPath('/LUXRealLap/Sample/Band'+side+str(i)+'/Face').IsValid(), (side,i)
                           assert stage.GetPrimAtPath('/LUXRealLap/Sample/Trim'+side+str(i)).IsValid(), (side,i)
                           assert stage.GetPrimAtPath('/LUXRealLap/Controls/Handle'+side+str(i-1)).IsValid(), (side,i)
-                          if i>1:
-                              assert stage.GetPrimAtPath('/LUXRealLap/Controls/Handle'+side+str(i-1)).GetAttribute('visibility').Get() == 'invisible'
+                          # No hardcoded USD invisible attribute: Apple runtime reveal controls visibility.
+                          assert not stage.GetPrimAtPath('/LUXRealLap/Controls/Handle'+side+str(i-1)).GetAttribute('visibility').HasAuthoredValue()
                   actions = [p for p in stage.Traverse() if p.GetTypeName() == 'Preliminary_Behavior']
-                  assert len(actions) == 16, len(actions)
-                  print('Confirmed 16 independent steps on original UV-mapped geometry')
+                  assert len(actions) == 17, len(actions)
+                  initializer = stage.GetPrimAtPath('/InitializeReveal/HideFuture')
+                  assert initializer.IsValid()
+                  targets = initializer.GetRelationship('affectedObjects').GetTargets()
+                  assert len(targets) == 44, (len(targets), targets)
+                  print('Confirmed 16 steps + 44 scene-start hidden future state targets')
               print('OpenUSD validation passed',filename)
           PY
       - name: Commit generated USDZ assets for GitHub Pages
