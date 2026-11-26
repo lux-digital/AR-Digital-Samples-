@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - main
-      - quicklook-mask-cube-native-button-fix-20261126
     paths:
       - 'tools/build_quicklook_mask.py'
       - '.github/workflows/build-quicklook-mask.yml'
