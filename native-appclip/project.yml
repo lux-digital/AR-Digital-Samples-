@@ -1,0 +1,50 @@
+name: LUXDigitalSamples
+options:
+  deploymentTarget:
+    iOS: "17.0"
+  bundleIdPrefix: com.luxsamples.prototype
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    TARGETED_DEVICE_FAMILY: "1,2"
+    IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+    CODE_SIGN_STYLE: Automatic
+targets:
+  LUXSamples:
+    type: application
+    platform: iOS
+    sources:
+      - path: Shared
+      - path: Resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.luxsamples.prototype
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_NSCameraUsageDescription: "Place West Coast Naturals products on real walls."
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIRequiredDeviceCapabilities: arkit
+  LUXSamplesClip:
+    type: application.on-demand-install-capable
+    platform: iOS
+    sources:
+      - path: Shared
+      - path: Resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.luxsamples.prototype.Clip
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_NSCameraUsageDescription: "Place West Coast Naturals products on real walls."
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIRequiredDeviceCapabilities: arkit
+        CODE_SIGN_ENTITLEMENTS: Clip.entitlements
+    dependencies: []
+schemes:
+  LUXSamples:
+    build:
+      targets:
+        LUXSamples: all
+  LUXSamplesClip:
+    build:
+      targets:
+        LUXSamplesClip: all
