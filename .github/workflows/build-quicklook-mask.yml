@@ -36,8 +36,8 @@ jobs:
               assert stage.GetPrimAtPath('/LUXRealLap/OriginalProduct/FullOriginalGLB').IsValid()
               mask=stage.GetPrimAtPath('/LUXRealLap/Masks/Right')
               assert mask.IsValid()
-              trigger=stage.GetPrimAtPath('/LUXRealLap/TapMoveRightMask/Tap')
-              action=stage.GetPrimAtPath('/LUXRealLap/TapMoveRightMask/Move')
+              trigger=stage.GetPrimAtPath('/TapMoveRightMask/Tap')
+              action=stage.GetPrimAtPath('/TapMoveRightMask/Move')
               assert trigger.IsValid() and action.IsValid()
               assert str(action.GetRelationship('xformTarget').GetTargets()[0]) == '/LUXRealLap/Targets/NextRight'
               assert str(action.GetRelationship('affectedObjects').GetTargets()[0]) == '/LUXRealLap/Masks/Right'
