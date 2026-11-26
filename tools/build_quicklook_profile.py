@@ -314,7 +314,7 @@ def Xform "{name}" (
     {{
 '''
     text += clipped_mesh("Core",original,CORE,"Wood")
-    for side in SIDES:
+    for side in SIDES if interactive else ():
         for step in range(1,STEPS+1):
             rect = rect_for_step(side,step)
             surface = clipped_mesh("Face",original,rect,"Wood")
@@ -322,7 +322,7 @@ def Xform "{name}" (
             vis = 'token visibility = "invisible"\n' if interactive else ''
             text += f'def Xform "Band{side}{step}" {{\n'+vis+surface+'}\n'
     for side in SIDES:
-        for step in range(0,STEPS+1):
+        for step in range(0,STEPS+1 if interactive else 1):
             edge=trim_edges(side_bounds(side,step))[side]
             vis="invisible" if interactive and step>0 else ""
             # The trim moves by changing visible *states*; original wood scale
@@ -383,10 +383,10 @@ def main():
         (True,"lux-real-lap-resize.usdz"),
     ]:
         usda=usd_scene(original,interactive)
-        assert usda.count("def Mesh") >= 1 + STEPS*len(SIDES)
+        assert usda.count("def Mesh") >= (1 + STEPS*len(SIDES) if interactive else 1)
         assert usda.count("def Preliminary_Behavior") == (STEPS*len(SIDES) if interactive else 0)
         assert all(f'Band{side}{i}' in usda and f'Trim{side}{i}' in usda
-                   for side in SIDES for i in range(1,STEPS+1))
+                   for side in SIDES for i in range(1,STEPS+1)) if interactive else "BandLeft1" not in usda
         out=pack_usdz(OUT/filename,[
            ("scene.usda",usda.encode("utf-8")),
            ("wood.jpg",jpg),
