@@ -1,0 +1,63 @@
+name: Build single-model Quick Look moving mask
+on:
+  push:
+    branches:
+      - main
+      - quicklook-moving-mask-test-20261126
+    paths:
+      - 'tools/build_quicklook_mask.py'
+      - '.github/workflows/build-quicklook-mask.yml'
+      - 'Profiles/V-GRROOVE_LAP.glb'
+      - 'Textures/Heartwood/LAP HEARTWOOD.jpg'
+      - 'Textures/Heartwood/TRIM HEARTWOOD.jpg'
+  workflow_dispatch:
+concurrency:
+  group: quicklook-mask-build-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: true}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: python -m pip install --quiet 'trimesh>=4,<5' numpy usd-core
+      - name: Build full-model mask files
+        run: python tools/build_quicklook_mask.py
+      - name: Validate in OpenUSD
+        run: |
+          python - <<'PY'
+          from pxr import Usd
+          import zipfile
+          for n in range(3):
+              f='quicklook/lux-mask-test-%d.usdz'%n
+              stage=Usd.Stage.Open(f)
+              assert stage and stage.GetDefaultPrim().GetName()=='LUXRealLap',f
+              assert stage.GetPrimAtPath('/LUXRealLap/OriginalProduct/FullOriginalGLB').IsValid()
+              mask=stage.GetPrimAtPath('/LUXRealLap/Masks/Right')
+              assert mask.IsValid()
+              trigger=stage.GetPrimAtPath('/TapMoveRightMask/Tap')
+              action=stage.GetPrimAtPath('/TapMoveRightMask/Move')
+              assert trigger.IsValid() and action.IsValid()
+              assert str(action.GetRelationship('xformTarget').GetTargets()[0]) == '/LUXRealLap/Targets/NextRight'
+              assert str(action.GetRelationship('affectedObjects').GetTargets()[0]) == '/LUXRealLap/Masks/Right'
+              with zipfile.ZipFile(f) as z:assert z.testzip() is None
+              print('PASSED full original mesh + transform trigger:',f)
+          PY
+      - name: Commit static USDZ assets
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Earlier runs may have committed stale output after checkout.
+          # Refresh all source files before the final build, then commit only models.
+          git fetch origin "${GITHUB_REF_NAME}"
+          git reset --hard "origin/${GITHUB_REF_NAME}"
+          python tools/build_quicklook_mask.py
+          git add quicklook/lux-mask-test-0.usdz quicklook/lux-mask-test-1.usdz quicklook/lux-mask-test-2.usdz
+          if ! git diff --cached --quiet; then
+            git commit -m "Generate single-LUX-model moving mask test USDZ"
+            git push origin HEAD:${GITHUB_REF_NAME}
+          fi
