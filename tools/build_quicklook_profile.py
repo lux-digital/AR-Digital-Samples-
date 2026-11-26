@@ -290,6 +290,45 @@ def action(side, step):
 '''
     return text+"}\n"
 
+def initial_reveal_state():
+    """Start by hiding future-state meshes and buttons with Apple actions.
+
+    USD static visibility cannot be overridden by the interactive show action,
+    which animates independently of the static UsdGeom visibility property.
+    """
+    hidden = []
+    for side in SIDES:
+        for step in range(1,STEPS+1):
+            hidden.append(f"<{B}/Sample/Band{side}{step}>")
+            hidden.append(f"<{B}/Sample/Trim{side}{step}>")
+            if step < STEPS:
+                hidden.append(f"<{B}/Controls/Handle{side}{step}>")
+    paths=", ".join(hidden)
+    return f'''def Preliminary_Behavior "InitializeReveal"
+{{
+    rel triggers = [<Start>]
+    rel actions = [<HideFuture>]
+    def Preliminary_Trigger "Start" (
+        inherits = </SceneTransitionTrigger>
+    )
+    {{
+        uniform token info:id = "SceneTransition"
+        uniform token type = "enter"
+    }}
+    def Preliminary_Action "HideFuture" (
+        inherits = </VisibilityAction>
+    )
+    {{
+        rel affectedObjects = [{paths}]
+        uniform token info:id = "Visibility"
+        uniform token type = "hide"
+        uniform token motionType = "none"
+        uniform token style = "basic"
+        double duration = 0.001
+    }}
+}}
+'''
+
 def usd_scene(original,interactive):
     """Real source geometry clipped into core + four-step band strips."""
     name="LUXRealLap"
@@ -319,12 +358,12 @@ def Xform "{name}" (
             rect = rect_for_step(side,step)
             surface = clipped_mesh("Face",original,rect,"Wood")
             # Hidden until a tap reveals this exact section, as authored in USD.
-            vis = 'token visibility = "invisible"\n' if interactive else ''
+            vis = ''
             text += f'def Xform "Band{side}{step}" {{\n'+vis+surface+'}\n'
     for side in SIDES:
         for step in range(0,STEPS+1 if interactive else 1):
             edge=trim_edges(side_bounds(side,step))[side]
-            vis="invisible" if interactive and step>0 else ""
+            vis=""
             # The trim moves by changing visible *states*; original wood scale
             # and XY positions remain fixed, no xform scaling is applied.
             text += face(f"Trim{side}{step}",edge,.061,visibility=vis)
@@ -339,7 +378,7 @@ def Xform "{name}" (
                 elif side=="Top": x,z=(CORE[0]+CORE[2])/2,-bounds[3]-.13
                 else: x,z=(CORE[0]+CORE[2])/2,-bounds[1]+.13
                 # Xforms serve as action targets; each contains a real 3D button.
-                visible = '' if step==0 else 'token visibility = "invisible"\n'
+                visible = ''
                 text += f'def Xform "Handle{side}{step}" {{\n'+visible
                 text += cube("Button",(x,.10,z),(.17,.045,.17),(.97,.97,.92))
                 text += '}\n'
@@ -349,6 +388,7 @@ def Xform "{name}" (
         for side in SIDES:
             for step in range(1,STEPS+1):
                 text += action(side,step)
+        text += initial_reveal_state()
     return text
 
 
@@ -384,7 +424,7 @@ def main():
     ]:
         usda=usd_scene(original,interactive)
         assert usda.count("def Mesh") >= (1 + STEPS*len(SIDES) if interactive else 1)
-        assert usda.count("def Preliminary_Behavior") == (STEPS*len(SIDES) if interactive else 0)
+        assert usda.count("def Preliminary_Behavior") == (1+STEPS*len(SIDES) if interactive else 0)
         assert all(f'Band{side}{i}' in usda and f'Trim{side}{i}' in usda
                    for side in SIDES for i in range(1,STEPS+1)) if interactive else "BandLeft1" not in usda
         out=pack_usdz(OUT/filename,[
