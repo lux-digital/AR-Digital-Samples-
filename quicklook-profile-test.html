@@ -26,21 +26,25 @@ hr{border:0;border-top:1px solid #364038;margin:22px 0}
 </style></head><body><main>
 <header><img src="./LUX%20Logo%20white.png" alt="LUX"><small>APPLE NATIVE AR · MASK TEST</small></header>
 <h1>One full LUX model.<br>Moving mask.</h1>
-<p>The <strong>entire original V-Groove/Lap GLB</strong> stays at one fixed scale. The test masks its outside area using grey panels. No extension strips, texture resizing or duplicated profiles.</p>
+<p>The <strong>entire original V-Groove/Lap GLB</strong> stays at one fixed scale. The test covers the outside area using <strong>solid grey blockers visible from both sides</strong>. No extension strips, texture resizing or duplicated profiles.</p>
 <div class="sample"></div>
 <small class="caption">Original Heartwood texture and full original geometry.</small>
-<div class="step"><strong>Test 1 — Control inside AR:</strong> Open AR and tap the white cube at the right edge. It is programmed to move the right grey mask <strong>60 cm outward</strong>, exposing more of the original woodgrain.</div>
-<label>Test 2 — Webpage control (reopens AR)</label>
+<div class="step"><strong>Test 1 — Control inside AR:</strong> Open AR and tap the white cube at the right edge. It now uses Apple’s corrected <strong>Transform</strong> action to move the right grey blocker 60 cm outward, exposing the same full-size model. The button should also flip when tapped.</div>
+<label>Test 2 — On-screen controls and AR banner</label>
 <div id="choices" role="group" aria-label="Preview different reveal positions">
 <button data-step="0" aria-pressed="true">START<br>0 cm</button>
 <button data-step="1" aria-pressed="false">REVEAL<br>60 cm</button>
 <button data-step="2" aria-pressed="false">REVEAL<br>120 cm</button>
 </div>
-<a id="ar" class="ar" rel="ar" href="./quicklook/lux-mask-test-0.usdz#callToAction=NEXT%20REVEAL"><img src="./ICONS/EXPAND.png" alt="Open mask movement test in AR"></a>
+<div id="stepbuttons" style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:9px 0 14px">
+  <button id="shrink" type="button" style="min-height:49px;background:#333f37;color:#fff;border:1px solid #67816e;border-radius:10px;font-weight:800">− 60 CM</button>
+  <button id="expand" type="button" style="min-height:49px;background:#b51e35;color:#fff;border:1px solid #d55666;border-radius:10px;font-weight:800">+ 60 CM</button>
+</div>
+<a id="ar" class="ar" rel="ar" href="./quicklook/lux-mask-test-0.usdz?v=6#callToAction=NEXT%2060CM&checkoutTitle=LUX%20Mask%20Test"><img src="./ICONS/EXPAND.png" alt="Open mask movement test in AR"></a>
 <p id="status" role="status">Ready for the initial mask position.</p>
-<small class="note">The grey panels are <strong>visible test mattes</strong>, not final invisible occlusion materials. Apple Quick Look cannot receive live webpage JavaScript commands while AR stays open. Select another preset here and reopen AR to test that fallback.</small>
+<small class="note">The grey blockers are <strong>visible for diagnosis</strong>, not final invisible depth masks. The native AR banner is an on-screen button, but tapping it returns to Safari; it cannot reposition geometry inside the current AR session. The webpage +/− buttons change the preset for your next AR launch.</small>
 <hr>
-<p style="font-size:11px">The AR “NEXT REVEAL” banner is also included as a third interaction check. It can notify Safari when tapped, but it cannot directly reposition the mask inside Quick Look.</p>
+<p style="font-size:11px">Inside Quick Look, test the <strong>white 3D cube</strong> (should flip and move the blocker), and the native <strong>NEXT 60CM</strong> banner (should return to the webpage and select the next width).</p>
 </main>
 <script>
 (() => {
@@ -51,14 +55,16 @@ hr{border:0;border-top:1px solid #364038;margin:22px 0}
   function select(n){
     value=Math.max(0,Math.min(2,n));
     for(const button of buttons)button.setAttribute('aria-pressed',String(Number(button.dataset.step)===value));
-    ar.href='./quicklook/lux-mask-test-'+value+'.usdz#callToAction=NEXT%20REVEAL';
+    ar.href='./quicklook/lux-mask-test-'+value+'.usdz?v=6#callToAction=NEXT%2060CM&checkoutTitle=LUX%20Mask%20Test';
     status.textContent='Webpage preset: right edge '+(value*60)+' cm beyond start. Tap OPEN AR to see it.';
   }
   buttons.forEach(b=>b.addEventListener('click',()=>select(Number(b.dataset.step))));
+  document.getElementById('expand').addEventListener('click',()=>select(value+1));
+  document.getElementById('shrink').addEventListener('click',()=>select(value-1));
   ar.addEventListener('message',evt=>{
     if(evt.data==='_apple_ar_quicklook_button_tapped'){
       select((value+1)%3);
-      status.textContent='Quick Look button reached Safari. The next position is selected; reopen AR to see it.';
+      status.textContent='AR on-screen button registered. Next width selected. Tap OPEN MOVING MASK IN AR to see it.';
     }
   });
   select(0);
