@@ -1,0 +1,36 @@
+name: Compile native LUX ARKit App Clip prototype
+on:
+  push:
+    branches:
+      - native-arkit-appclip-prototype-20261126
+    paths:
+      - 'native-appclip/**'
+      - 'tools/export_native_appclip_assets.py'
+      - '.github/workflows/check-native-appclip.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  simulator-build:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Export original LUX geometry and woodgrain assets
+        run: |
+          python3 -m pip install --break-system-packages --quiet numpy trimesh
+          python3 tools/export_native_appclip_assets.py
+      - name: Generate native iOS app and App Clip Xcode project
+        run: |
+          cd native-appclip
+          xcodegen generate
+      - name: Compile App Clip in iPhone Simulator without signing
+        run: |
+          cd native-appclip
+          xcodebuild -project LUXDigitalSamples.xcodeproj -scheme LUXSamplesClip -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
+      - name: Compile corresponding host app without signing
+        run: |
+          cd native-appclip
+          xcodebuild -project LUXDigitalSamples.xcodeproj -scheme LUXSamples -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
