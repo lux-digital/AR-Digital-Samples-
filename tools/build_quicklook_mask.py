@@ -113,6 +113,9 @@ def Xform "LUXRealLap" (
    }}
  }}
 '''
+    # Close the default prim first: Apple's official tap example declares
+    # Preliminary_Behavior at the USD scene ROOT, not inside the model prim.
+    a += '}\n'
     # A tap on the physical button should animate the same mask 60cm outward.
     # Valid TransformAction schema: xformTarget relationship to a prim carrying
     # xformOp:translate, and affectedObjects pointing to moving parent.
@@ -144,7 +147,7 @@ def Xform "LUXRealLap" (
    }}
  }}
 '''
-    return a+"}\n"
+    return a
 
 def main():
     original=load_original()
