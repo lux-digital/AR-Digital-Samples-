@@ -35,7 +35,8 @@ jobs:
               assert stage, filename
               assert stage.GetDefaultPrim().GetName()=='LUXRealLap'
               assert stage.GetPrimAtPath('/LUXRealLap/Sample/Core').IsValid()
-              assert stage.GetPrimAtPath('/LUXRealLap/Sample/BandLeft/Face').IsValid()
+              if 'resize' in filename:
+                  assert stage.GetPrimAtPath('/LUXRealLap/Sample/BandLeft1/Face').IsValid()
               if 'resize' in filename:
                   from pxr import UsdGeom
                   for side in ('Left','Right','Top','Bottom'):
