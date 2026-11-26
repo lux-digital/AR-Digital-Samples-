@@ -8,7 +8,7 @@ import simd
 // The customer's controls stay visible directly over the native camera feed.
 @main
 struct LUXDigitalSamplesApp: App {
-    var body: some Scene {
+    var body: some SwiftUI.Scene {
         WindowGroup {
             LUXARScreen()
         }
