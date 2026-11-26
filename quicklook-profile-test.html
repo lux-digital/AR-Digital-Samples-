@@ -22,7 +22,7 @@ ol{padding-left:22px;color:#d5dfd7;font-size:13px}li{padding:4px 0}
 footer{font-size:10px;color:#99a69c;margin-top:30px}
 </style></head>
 <body><main>
-<header><img src="./LUX%20Logo%20white.png" alt="LUX"><span>NATIVE QUICK LOOK<br>REAL PROFILE · TEST 03</span></header>
+<header><img src="./LUX%20Logo%20white.png" alt="LUX"><span>NATIVE QUICK LOOK<br>REAL PROFILE · MULTI-STEP TEST</span></header>
 <h1>West Coast Naturals<br>Real profile on your wall</h1>
 <p>Both tests use your original <strong>V-Groove/Lap GLB geometry</strong> and <strong>Heartwood LAP woodgrain</strong>, with Apple's native tracking—no browser SLAM.</p>
 <div class="preview"></div>
@@ -33,16 +33,16 @@ footer{font-size:10px;color:#99a69c;margin-top:30px}
 <a class="ar" rel="ar" href="./quicklook/lux-real-lap-wall.usdz" data-label="OPEN REAL PROFILE IN AR"><img src="./ICONS/EXPAND.png" alt="Open real profile in AR"></a>
 </section>
 <section class="test">
-<h2>B — Actual LUX profile + four resize controls</h2>
-<p>Same 3D profile with four white square handles. Each is intended to reveal another 36 cm of the continuous profile and move its own edge trim, without resizing the texture.</p>
-<a class="ar" rel="ar" href="./quicklook/lux-real-lap-resize.usdz" data-label="TEST FOUR RESIZE HANDLES"><img src="./ICONS/EXPAND.png" alt="Test four resize handles"></a>
+<h2>B — Four-way, multi-step product reveal</h2>
+<p>Same original V-Groove/Lap profile and real Heartwood UVs. Tap a white handle repeatedly: four separate reveal steps on every side. The active handle and trim move outward at each step; the product itself never scales.</p>
+<a class="ar" rel="ar" href="./quicklook/lux-real-lap-resize.usdz" data-label="TEST FOUR-STEP REVEAL"><img src="./ICONS/EXPAND.png" alt="Test four resize handles"></a>
 </section>
 <ol>
 <li>Open this page in <strong>iPhone Safari</strong>.</li>
 <li>Try <strong>A</strong> first. The panel should now face the wall, not appear as an overhead soffit.</li>
-<li>Try <strong>B</strong>. Tap each white square <em>inside the AR scene</em> and check for expansion or a flip animation.</li>
+<li>Try <strong>B</strong>. Tap a white square <em>inside AR</em> four times, following the handle as it moves outward. Try each side. Does the actual woodgrain reveal more instead of stretching?</li>
 <li>Walk around as before to check placement stability.</li>
 </ol>
-<p class="note"><strong>Important:</strong> A normal webpage cannot send arbitrary JavaScript commands into Quick Look while AR is open. This prototype tests Apple's in-file tap actions instead. They are discrete steps, not Aero's continuous dragging yet, and need verification on your iPhone.</p>
+<p class="note"><strong>Important:</strong> Each tap is designed to reveal a new area of your original mesh, not enlarge it. We are testing Apple's in-file tap actions; continuous dragging is not supported by this prototype. Expanding two perpendicular sides may leave corner gaps until we address combined edge states.</p>
 <footer>Original main visualizer and previous Quick Look tests are unchanged.</footer>
 </main></body></html>

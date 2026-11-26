@@ -27,13 +27,35 @@ WOOD = ROOT / "Textures/Heartwood/LAP HEARTWOOD.jpg"
 TRIM = ROOT / "Textures/Heartwood/TRIM HEARTWOOD.jpg"
 B = "/LUXRealLap"
 CORE = (-0.80, -0.55, 0.80, 0.55)
-STEP = 0.36
-BANDS = {
-    "Left": (CORE[0] - STEP, CORE[1], CORE[0], CORE[3]),
-    "Right": (CORE[2], CORE[1], CORE[2] + STEP, CORE[3]),
-    "Top": (CORE[0], CORE[3], CORE[2], CORE[3] + STEP),
-    "Bottom": (CORE[0], CORE[1] - STEP, CORE[2], CORE[1]),
-}
+STEPS = 4
+STEP_X = 0.65
+STEP_Y = 0.22
+SIDES = ("Left", "Right", "Top", "Bottom")
+
+def rect_for_step(side, n):
+    """Adjacent, non-overlapping sections of the original large GLB; no scaling."""
+    if not 1 <= n <= STEPS:
+        raise ValueError((side, n))
+    a,b,c,d = CORE
+    if side == "Left":
+        return (a-n*STEP_X,b,a-(n-1)*STEP_X,d)
+    if side == "Right":
+        return (c+(n-1)*STEP_X,b,c+n*STEP_X,d)
+    if side == "Top":
+        return (a,d+(n-1)*STEP_Y,c,d+n*STEP_Y)
+    if side == "Bottom":
+        return (a,b-n*STEP_Y,c,b-(n-1)*STEP_Y)
+    raise ValueError(side)
+
+def side_bounds(side,n):
+    """Absolute edge position at expansion step n, not mesh scale."""
+    a,b,c,d=CORE
+    step = STEP_X if side in ("Left","Right") else STEP_Y
+    if side=="Left": a-=step*n
+    if side=="Right":c+=step*n
+    if side=="Top": d+=step*n
+    if side=="Bottom":b-=step*n
+    return (a,b,c,d)
 
 def num(v):
     f = float(v)
@@ -213,11 +235,29 @@ def trim_edges(rect):
       "Bottom":(a,b,c,b+t)
     }
 
-def action(name,objects):
-    # Based on Apple's Preliminary_Behavior and the published USD exporter
-    # representation of a VisibilityAction. The tap response first flips the
-    # touched 3D handle, to help diagnose whether the trigger runs at all.
-    return f'''def Preliminary_Behavior "Expand{name}"
+def action(side, step):
+    """A chain of *visible* handles provides state without JavaScript in Quick Look.
+
+    Each tap hides the previous handle and activates the next handle. One
+    behavior is responsible for exactly one reveal, not multiple simultaneous
+    reveals that would change the apparent pattern scale.
+    """
+    name = f"{side}{step}"
+    previous = f"{side}{step-1}"
+    next_handle = f"{side}{step}"
+    targets = [
+        ("Reveal",f"{B}/Sample/Band{side}{step}","show"),
+        ("HideTrim",f"{B}/Sample/Trim{side}{step-1}","hide"),
+        ("ShowTrim",f"{B}/Sample/Trim{side}{step}","show"),
+        ("HideHandle",f"{B}/Controls/Handle{previous}","hide"),
+    ]
+    if step < STEPS:
+        targets.append(("ShowNextHandle",f"{B}/Controls/Handle{next_handle}","show"))
+    else:
+        # Keep the final handle visible but change its colour: exhausted edge.
+        targets.pop()
+    actions = ", ".join(f"<{p}>" for p,_,_ in targets)
+    text = f'''def Preliminary_Behavior "Expand{name}"
 {{
     rel triggers = [<Tap>]
     rel actions = [<Entry>]
@@ -225,60 +265,72 @@ def action(name,objects):
         inherits = </TapGestureTrigger>
     )
     {{
-        rel affectedObjects = [<{B}/Controls/Handle{name}>]
+        rel affectedObjects = [<{B}/Controls/Handle{previous}>]
     }}
     def Preliminary_Action "Entry" (
         inherits = </GroupAction>
     )
     {{
         uniform token type = "parallel"
-        rel actions = [<Feedback>,<ShowBand>,<HideTrim>,<ShowTrim>]
+        rel actions = [{actions}]
     }}
-    def Preliminary_Action "Feedback" (
-        inherits = </EmphasizeAction>
-    )
-    {{
-        rel affectedObjects = [<{B}/Controls/Handle{name}>]
-        uniform token motionType = "flip"
-        double duration = 0.45
-    }}
-    def Preliminary_Action "ShowBand" (
+'''
+    for title,path,mode in targets:
+        text += f'''    def Preliminary_Action "{title}" (
         inherits = </VisibilityAction>
     )
     {{
-        rel affectedObjects = [<{B}/Sample/Band{name}>]
+        rel affectedObjects = [<{path}>]
         uniform token info:id = "Visibility"
-        uniform token type = "show"
+        uniform token type = "{mode}"
         uniform token motionType = "none"
         uniform token style = "basic"
-        double duration = 0.16
+        double duration = 0.08
     }}
-    def Preliminary_Action "HideTrim" (
+'''
+    return text+"}\n"
+
+def initial_reveal_state():
+    """Start by hiding future-state meshes and buttons with Apple actions.
+
+    USD static visibility cannot be overridden by the interactive show action,
+    which animates independently of the static UsdGeom visibility property.
+    """
+    hidden = []
+    for side in SIDES:
+        for step in range(1,STEPS+1):
+            hidden.append(f"<{B}/Sample/Band{side}{step}>")
+            hidden.append(f"<{B}/Sample/Trim{side}{step}>")
+            if step < STEPS:
+                hidden.append(f"<{B}/Controls/Handle{side}{step}>")
+    paths=", ".join(hidden)
+    return f'''def Preliminary_Behavior "InitializeReveal"
+{{
+    rel triggers = [<Start>]
+    rel actions = [<HideFuture>]
+    def Preliminary_Trigger "Start" (
+        inherits = </SceneTransitionTrigger>
+    )
+    {{
+        uniform token info:id = "SceneTransition"
+        uniform token type = "enter"
+    }}
+    def Preliminary_Action "HideFuture" (
         inherits = </VisibilityAction>
     )
     {{
-        rel affectedObjects = [<{B}/Sample/Trim{name}>]
+        rel affectedObjects = [{paths}]
         uniform token info:id = "Visibility"
         uniform token type = "hide"
         uniform token motionType = "none"
         uniform token style = "basic"
-        double duration = 0.16
-    }}
-    def Preliminary_Action "ShowTrim" (
-        inherits = </VisibilityAction>
-    )
-    {{
-        rel affectedObjects = [<{B}/Sample/Trim{name}Expanded>]
-        uniform token info:id = "Visibility"
-        uniform token type = "show"
-        uniform token motionType = "none"
-        uniform token style = "basic"
-        double duration = 0.16
+        double duration = 0.001
     }}
 }}
 '''
 
 def usd_scene(original,interactive):
+    """Real source geometry clipped into core + four-step band strips."""
     name="LUXRealLap"
     text=f'''#usda 1.0
 (
@@ -300,40 +352,45 @@ def Xform "{name}" (
     def Xform "Sample"
     {{
 '''
-    text+=clipped_mesh("Core",original,CORE,"Wood")
-    for side,rect in BANDS.items():
-        surface=clipped_mesh("Face",original,rect,"Wood")
-        text+=f'def Xform "Band{side}"'+' {\n'
-        if interactive:
-            text+='token visibility = "invisible"\n'
-        text+=surface+'}\n'
-    old=trim_edges(CORE)
-    for side,rect in old.items():
-        text+=face("Trim"+side,rect,.061)
-        new_rect=trim_edges({
-            "Left":(CORE[0]-STEP,CORE[1],CORE[2],CORE[3]),
-            "Right":(CORE[0],CORE[1],CORE[2]+STEP,CORE[3]),
-            "Top":(CORE[0],CORE[1],CORE[2],CORE[3]+STEP),
-            "Bottom":(CORE[0],CORE[1]-STEP,CORE[2],CORE[3]),
-        }[side])[side]
-        text+=face("Trim"+side+"Expanded",new_rect,.062,visibility="invisible" if interactive else "")
-    text+='}\n'
+    text += clipped_mesh("Core",original,CORE,"Wood")
+    for side in SIDES if interactive else ():
+        for step in range(1,STEPS+1):
+            rect = rect_for_step(side,step)
+            surface = clipped_mesh("Face",original,rect,"Wood")
+            # Hidden until a tap reveals this exact section, as authored in USD.
+            vis = ''
+            text += f'def Xform "Band{side}{step}" {{\n'+vis+surface+'}\n'
+    for side in SIDES:
+        for step in range(0,STEPS+1 if interactive else 1):
+            edge=trim_edges(side_bounds(side,step))[side]
+            vis=""
+            # The trim moves by changing visible *states*; original wood scale
+            # and XY positions remain fixed, no xform scaling is applied.
+            text += face(f"Trim{side}{step}",edge,.061,visibility=vis)
+    text += "}\n"
     if interactive:
-        text+='def Xform "Controls" {\n'
-        markers={
-            "Left":(CORE[0]-.10,0),
-            "Right":(CORE[2]+.10,0),
-            "Top":(0,CORE[3]+.10),
-            "Bottom":(0,CORE[1]-.10),
-        }
-        for side,(x,y) in markers.items():
-            text+=cube("Handle"+side,(x,.095,-y),(.13,.035,.13),(.98,.98,.92))
-        text+='}\n'
-    text+='}\n'
+        text += 'def Xform "Controls" {\n'
+        for side in SIDES:
+            for step in range(0,STEPS):
+                bounds=side_bounds(side,step)
+                if side=="Left": x,z=bounds[0]-.13,-(CORE[1]+CORE[3])/2
+                elif side=="Right": x,z=bounds[2]+.13,-(CORE[1]+CORE[3])/2
+                elif side=="Top": x,z=(CORE[0]+CORE[2])/2,-bounds[3]-.13
+                else: x,z=(CORE[0]+CORE[2])/2,-bounds[1]+.13
+                # Xforms serve as action targets; each contains a real 3D button.
+                visible = ''
+                text += f'def Xform "Handle{side}{step}" {{\n'+visible
+                text += cube("Button",(x,.10,z),(.17,.045,.17),(.97,.97,.92))
+                text += '}\n'
+        text += '}\n'
+    text += '}\n'
     if interactive:
-        for side in BANDS:
-            text+=action(side,None)
+        for side in SIDES:
+            for step in range(1,STEPS+1):
+                text += action(side,step)
+        text += initial_reveal_state()
     return text
+
 
 def pack_usdz(path, files):
     import zlib
@@ -366,7 +423,10 @@ def main():
         (True,"lux-real-lap-resize.usdz"),
     ]:
         usda=usd_scene(original,interactive)
-        assert usda.count("def Mesh")>=9 and ("def Preliminary_Behavior" in usda)==interactive
+        assert usda.count("def Mesh") >= (1 + STEPS*len(SIDES) if interactive else 1)
+        assert usda.count("def Preliminary_Behavior") == (1+STEPS*len(SIDES) if interactive else 0)
+        assert all(f'Band{side}{i}' in usda and f'Trim{side}{i}' in usda
+                   for side in SIDES for i in range(1,STEPS+1)) if interactive else "BandLeft1" not in usda
         out=pack_usdz(OUT/filename,[
            ("scene.usda",usda.encode("utf-8")),
            ("wood.jpg",jpg),
