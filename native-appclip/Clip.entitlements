@@ -3,5 +3,7 @@
 <plist version="1.0">
 <dict>
   <key>com.apple.developer.on-demand-install-capable</key><true/>
+  <key>com.apple.developer.parent-application-identifiers</key>
+  <array><string>$(AppIdentifierPrefix)com.luxsamples.prototype</string></array>
 </dict>
 </plist>
