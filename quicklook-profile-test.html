@@ -1,48 +1,66 @@
 <!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#111715">
-<title>LUX | Native AR real profile and resize test</title>
+<meta name="theme-color" content="#111715"><title>LUX | Moving Mask AR Test</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#101613;color:#f1f4f0;font:15px/1.48 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-main{max-width:670px;padding:24px 18px 50px;margin:auto}
-header{display:flex;align-items:center;justify-content:space-between;gap:14px}
-header img{max-height:50px;max-width:112px;object-fit:contain}header span{font-size:10px;letter-spacing:1.2px;color:#aab8ad;text-align:right}
-h1{font-size:clamp(26px,6.5vw,39px);line-height:1.1;letter-spacing:-.8px;margin:32px 0 12px}
-p{color:#c9d7cc}strong{color:#fff}
-.preview{border-radius:12px;border:7px solid #393228;overflow:hidden;margin:24px 0 6px;height:250px;background:url("./Textures/Heartwood/LAP%20HEARTWOOD.jpg") center/cover no-repeat}
-.caption{display:block;color:#a5b2a8;font-size:11px;margin-bottom:22px}
-.test{padding:17px;border:1px solid #36433b;border-radius:12px;background:#1b2520;margin:12px 0}
-h2{font-size:16px;margin:0 0 5px} .test p{font-size:12px;line-height:1.5;margin:0 0 15px}
-.ar{display:flex;align-items:center;justify-content:center;background:#bd2038;border-radius:10px;min-height:55px;color:#fff;text-decoration:none}
-.ar img{display:block;width:24px;height:24px;margin-right:10px;object-fit:contain}
-.ar:after{content:attr(data-label);font-size:12px;font-weight:800;letter-spacing:.5px}
-.note{font-size:12px;padding:10px 12px;border-left:2px solid #b8bfb9;background:#202b23;margin:22px 0}
-ol{padding-left:22px;color:#d5dfd7;font-size:13px}li{padding:4px 0}
-footer{font-size:10px;color:#99a69c;margin-top:30px}
-</style></head>
-<body><main>
-<header><img src="./LUX%20Logo%20white.png" alt="LUX"><span>NATIVE QUICK LOOK<br>REAL PROFILE · MULTI-STEP TEST</span></header>
-<h1>West Coast Naturals<br>Real profile on your wall</h1>
-<p>Both tests use your original <strong>V-Groove/Lap GLB geometry</strong> and <strong>Heartwood LAP woodgrain</strong>, with Apple's native tracking—no browser SLAM.</p>
-<div class="preview"></div>
-<small class="caption">Original woodgrain and UV mapping retained. Geometry is cropped rather than texture-stretched.</small>
-<section class="test">
-<h2>A — Actual LUX profile, wall placement</h2>
-<p>First confirm that the V-Groove/Lap profile now faces the wall correctly. No tap controls to interfere with model loading.</p>
-<a class="ar" rel="ar" href="./quicklook/lux-real-lap-wall.usdz" data-label="OPEN REAL PROFILE IN AR"><img src="./ICONS/EXPAND.png" alt="Open real profile in AR"></a>
-</section>
-<section class="test">
-<h2>B — Four-way, multi-step product reveal</h2>
-<p>Same original V-Groove/Lap profile and real Heartwood UVs. Tap a white handle repeatedly: four separate reveal steps on every side. The active handle and trim move outward at each step; the product itself never scales.</p>
-<a class="ar" rel="ar" href="./quicklook/lux-real-lap-resize.usdz" data-label="TEST FOUR-STEP REVEAL"><img src="./ICONS/EXPAND.png" alt="Test four resize handles"></a>
-</section>
-<ol>
-<li>Open this page in <strong>iPhone Safari</strong>.</li>
-<li>Try <strong>A</strong> first. The panel should now face the wall, not appear as an overhead soffit.</li>
-<li>Try <strong>B</strong>. Tap a white square <em>inside AR</em> four times, following the handle as it moves outward. Try each side. Does the actual woodgrain reveal more instead of stretching?</li>
-<li>Walk around as before to check placement stability.</li>
-</ol>
-<p class="note"><strong>Important:</strong> Each tap is designed to reveal a new area of your original mesh, not enlarge it. We are testing Apple's in-file tap actions; continuous dragging is not supported by this prototype. Expanding two perpendicular sides may leave corner gaps until we address combined edge states.</p>
-<footer>Original main visualizer and previous Quick Look tests are unchanged.</footer>
-</main></body></html>
+*{box-sizing:border-box}body{margin:0;background:#101613;color:#f1f4f0;font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+main{max-width:660px;padding:24px 18px 46px;margin:auto}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+header img{width:114px;max-height:55px;object-fit:contain}
+header small{font-size:9px;letter-spacing:1.25px;color:#aab8ad;text-align:right}
+h1{font-size:clamp(27px,7vw,37px);line-height:1.14;letter-spacing:-.9px;margin:27px 0 10px}
+p{color:#cad8cd;font-size:13px;line-height:1.6}
+.sample{height:175px;border:7px solid #3e372c;border-radius:10px;margin-top:19px;background:url("./Textures/Heartwood/LAP%20HEARTWOOD.jpg") center/cover}
+.caption{display:block;color:#abbbae;font-size:11px;margin:6px 0 20px}
+label{display:block;font-size:12px;font-weight:750;margin-top:22px;margin-bottom:9px}
+#choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-bottom:12px}
+#choices button{background:#242d27;border:1px solid #536258;color:white;border-radius:9px;min-height:47px;font-weight:700;font-size:11px}
+#choices button[aria-pressed=true]{background:#d2223b;border-color:#ea5165}
+.ar{min-height:60px;background:#c5223a;border:1px solid #ee5c71;border-radius:11px;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:10px;color:white;font-weight:800;font-size:12px;letter-spacing:.45px}
+.ar img{height:24px;width:24px;object-fit:contain}
+#status{font-size:12px;color:#a9d6bc;margin:8px 0 0}
+.step{margin-top:18px;background:#1e2721;border:1px solid #344b3a;border-radius:11px;padding:13px;font-size:13px;line-height:1.6}
+small.note{display:block;color:#b8c4b9;margin-top:17px;font-size:11px;line-height:1.65}
+hr{border:0;border-top:1px solid #364038;margin:22px 0}
+</style></head><body><main>
+<header><img src="./LUX%20Logo%20white.png" alt="LUX"><small>APPLE NATIVE AR · MASK TEST</small></header>
+<h1>One full LUX model.<br>Moving mask.</h1>
+<p>The <strong>entire original V-Groove/Lap GLB</strong> stays at one fixed scale. The test masks its outside area using grey panels. No extension strips, texture resizing or duplicated profiles.</p>
+<div class="sample"></div>
+<small class="caption">Original Heartwood texture and full original geometry.</small>
+<div class="step"><strong>Test 1 — Control inside AR:</strong> Open AR and tap the white cube at the right edge. It is programmed to move the right grey mask <strong>60 cm outward</strong>, exposing more of the original woodgrain.</div>
+<label>Test 2 — Webpage control (reopens AR)</label>
+<div id="choices" role="group" aria-label="Preview different reveal positions">
+<button data-step="0" aria-pressed="true">START<br>0 cm</button>
+<button data-step="1" aria-pressed="false">REVEAL<br>60 cm</button>
+<button data-step="2" aria-pressed="false">REVEAL<br>120 cm</button>
+</div>
+<a id="ar" class="ar" rel="ar" href="./quicklook/lux-mask-test-0.usdz#callToAction=NEXT%20REVEAL"><img src="./ICONS/EXPAND.png" alt="Open mask movement test in AR"></a>
+<p id="status" role="status">Ready for the initial mask position.</p>
+<small class="note">The grey panels are <strong>visible test mattes</strong>, not final invisible occlusion materials. Apple Quick Look cannot receive live webpage JavaScript commands while AR stays open. Select another preset here and reopen AR to test that fallback.</small>
+<hr>
+<p style="font-size:11px">The AR “NEXT REVEAL” banner is also included as a third interaction check. It can notify Safari when tapped, but it cannot directly reposition the mask inside Quick Look.</p>
+</main>
+<script>
+(() => {
+  const buttons=[...document.querySelectorAll('#choices button')];
+  const ar=document.getElementById('ar');
+  const status=document.getElementById('status');
+  let value=0;
+  function select(n){
+    value=Math.max(0,Math.min(2,n));
+    for(const button of buttons)button.setAttribute('aria-pressed',String(Number(button.dataset.step)===value));
+    ar.href='./quicklook/lux-mask-test-'+value+'.usdz#callToAction=NEXT%20REVEAL';
+    status.textContent='Webpage preset: right edge '+(value*60)+' cm beyond start. Tap OPEN AR to see it.';
+  }
+  buttons.forEach(b=>b.addEventListener('click',()=>select(Number(b.dataset.step))));
+  ar.addEventListener('message',evt=>{
+    if(evt.data==='_apple_ar_quicklook_button_tapped'){
+      select((value+1)%3);
+      status.textContent='Quick Look button reached Safari. The next position is selected; reopen AR to see it.';
+    }
+  });
+  select(0);
+})();
+</script>
+</body></html>
