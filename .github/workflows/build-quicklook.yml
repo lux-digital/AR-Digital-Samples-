@@ -1,0 +1,49 @@
+name: Build static LUX Quick Look USDZ
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/build_quicklook.py'
+      - '.github/workflows/build-quicklook.yml'
+      - 'Textures/Heartwood/LAP HEARTWOOD.jpg'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Build actual static USDZ files from repository texture
+        run: python tools/build_quicklook.py
+      - name: Verify aligned archive and content
+        run: |
+          python - <<'PY'
+          import zipfile
+          for fname in ['quicklook/lux-quicklook-smoke.usdz','quicklook/lux-heartwood-interactive.usdz']:
+              with zipfile.ZipFile(fname) as z:
+                  assert z.testzip() is None
+                  assert z.namelist()[0] == 'scene.usda'
+                  src = z.read('scene.usda').decode('utf8')
+                  assert src.startswith('#usda 1.0')
+                  assert 'vertical' in src
+                  if 'interactive' in fname:
+                      assert 'heartwood.jpg' in z.namelist()
+                      assert src.count('def Preliminary_Behavior') == 4
+                      assert 'VisibilityAction' in src
+          print('Archive checks passed')
+          PY
+      - name: Commit generated USDZ to main for GitHub Pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add quicklook/lux-quicklook-smoke.usdz quicklook/lux-heartwood-interactive.usdz
+          if ! git diff --cached --quiet; then
+            git commit -m "Generate static Quick Look models from original Heartwood asset"
+            git push origin HEAD:main
+          fi

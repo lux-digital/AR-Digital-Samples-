@@ -1,184 +1,61 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0e1412"><title>LUX | Apple AR Quick Look test</title>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101411">
+<title>LUX | Native Apple Quick Look tests</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#0e1412;color:#f6f8f5;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.5}
-main{max-width:680px;margin:0 auto;padding:25px 19px 38px}header{display:flex;align-items:center;justify-content:space-between}
-header img{width:120px;max-height:57px;object-fit:contain}small{color:#a6ada8;font-size:10px;letter-spacing:1px}
-h1{font-size:clamp(27px,6.8vw,39px);letter-spacing:-1px;line-height:1.12;margin:24px 0 10px}
-p{color:#c6d0c9;font-size:14px}strong{color:#fff}
-.sample{position:relative;height:260px;background:url("./Textures/Heartwood/LAP%20HEARTWOOD.jpg") center/100% 100% no-repeat;border:8px solid #37312b;border-radius:10px}
-.sample:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent,transparent calc(20% - 2px),#241b1558 calc(20% - 2px),#241b1558 20%)}
-.caption{font-size:11px;color:#abb7ad;margin:8px 0 23px}
-#open{display:flex;gap:11px;align-items:center;justify-content:center;text-decoration:none;background:#c51d36;color:#fff;padding:15px 12px;border-radius:12px;font-weight:800;letter-spacing:.25px;text-align:center;min-height:62px}
-#open[aria-disabled="true"]{opacity:.5;pointer-events:none}#open img{height:25px;width:25px;object-fit:contain}#open:after{content:attr(data-label);font-size:15px}
-#status{font-size:12px;min-height:38px}#download{font-size:12px;color:#eceeeb}
-.instructions{display:grid;gap:10px;margin-top:24px}.instructions>div{background:#1f2722;border:1px solid #39443c;border-radius:10px;padding:11px 14px;font-size:13px;color:#dae4dc}
-.warn{font-size:12px;color:#aebcb0;border-left:2px solid #8c9b90;padding-left:12px;margin-top:20px}
-</style></head><body><main>
-<header><img src="./LUX%20Logo%20white.png" alt="LUX"><small>QUICK LOOK EXPERIMENT 01</small></header>
-<h1>West Coast Naturals<br>Apple AR test</h1>
-<p>This test uses <strong>Apple's native AR Quick Look</strong> rather than the drifting WebAR engines. It uses the real <strong>Heartwood LAP</strong> texture from the LUX repository.</p>
-<div class="sample"></div><div class="caption">Source texture: Heartwood/LAP HEARTWOOD.jpg. Fixed UV mapping — never tiled.</div>
-<a id="open" href="#" rel="ar" aria-disabled="true" data-label="PREPARING USDZ…" aria-label="Prepare Quick Look test"><img src="./ICONS/EXPAND.png" alt="Open Quick Look test"></a>
-<p id="status" role="status">Creating a self-contained native AR file using the existing woodgrain.</p>
-<a id="download" hidden href="#" download="lux-heartwood-quicklook.usdz">Save USDZ to Files (alternative launch)</a>
-<div class="instructions">
- <div><b>1.</b> Open in Safari on iPhone and tap <b>OPEN APPLE AR</b>.</div>
- <div><b>2.</b> Use AR mode and position the sample on the actual wall.</div>
- <div><b>3.</b> Tap the <b>four white squares on the model</b>. Each is linked to a separate edge-reveal action.</div>
- <div><b>4.</b> Walk sideways and back to test native tracking.</div>
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#101411;color:#f1f3f0;font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+main{max-width:680px;margin:0 auto;padding:24px 18px 50px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+header img{width:115px;max-height:55px;object-fit:contain}
+header small{font-size:10px;letter-spacing:1px;color:#aeb9af}
+h1{font-size:clamp(26px,6vw,38px);line-height:1.13;letter-spacing:-.8px;margin:30px 0 12px}
+h2{font-size:17px;margin:30px 0 10px}
+p{color:#d2dad3;margin:12px 0}
+.preview{height:220px;background:url("./Textures/Heartwood/LAP%20HEARTWOOD.jpg") center/cover;border-radius:12px;border:7px solid #342c24;margin-top:18px}
+small.caption{display:block;color:#abb9ae;font-size:11px;margin:6px 0 18px}
+.two{display:grid;gap:12px}
+.test{border:1px solid #334138;background:#1b231e;padding:16px;border-radius:13px}
+.test strong{display:block;font-size:15px}
+.test p{font-size:12px;color:#b9c5bb;margin:4px 0 12px}
+.launch{background:#c22236;border-radius:10px;min-height:55px;display:flex;align-items:center;justify-content:center;text-decoration:none;color:white}
+.launch:after{content:attr(data-label);font-size:13px;font-weight:800;letter-spacing:.4px;text-align:center;margin:0 9px}
+.launch img{display:block;width:26px;height:26px;object-fit:contain;margin-left:10px}
+a.ordinary{font-size:12px;color:#e2ece4;display:inline-block;margin-top:13px}
+ol{margin:0 0 0 20px;padding:0;color:#d5ddd5;font-size:13px}
+li{padding:5px 0}
+.note{font-size:12px;padding:11px 12px;border-left:2px solid #879c8b;background:#1b251e}
+</style>
+</head>
+<body><main>
+<header><img src="./LUX%20Logo%20white.png" alt="LUX"><small>NATIVE APPLE AR · TEST 02</small></header>
+<h1>West Coast Naturals<br>Quick Look tests</h1>
+<p>This version loads <strong>real, pre-built USDZ files over HTTPS</strong> instead of generating a file inside Safari. That removes a known failure source.</p>
+<div class="preview"></div>
+<small class="caption">LUX Heartwood/LAP original texture is packaged into the interactive model.</small>
+<div class="two">
+<section class="test">
+<strong>Test A — Open a simple model first</strong>
+<p>A coloured cube with a vertical-plane anchor request. No textures or action scripts. This separates Apple Quick Look loading from our more complicated content.</p>
+<a class="launch" rel="ar" href="./quicklook/lux-quicklook-smoke.usdz" data-label="OPEN BASIC AR TEST"><img alt="Open basic AR test" src="./ICONS/EXPAND.png"></a>
+<a class="ordinary" href="./quicklook/lux-quicklook-smoke.usdz">Direct USDZ file</a>
+</section>
+<section class="test">
+<strong>Test B — Heartwood with four tap controls</strong>
+<p>The real Heartwood woodgrain, a vertical anchor request, four 3D white controls and independent one-step expansion actions.</p>
+<a class="launch" rel="ar" href="./quicklook/lux-heartwood-interactive.usdz" data-label="OPEN HEARTWOOD AR TEST"><img alt="Open interactive Heartwood test" src="./ICONS/EXPAND.png"></a>
+<a class="ordinary" href="./quicklook/lux-heartwood-interactive.usdz">Direct Heartwood USDZ file</a>
+</section>
 </div>
-<p class="warn">This first USDZ experiment tests native wall anchoring and four one-step tap controls. Dragging, full-profile geometry, multiple colours and repeating expansion steps are not yet implemented. We need to confirm that Apple runs the embedded actions on your device.</p>
-</main>
-<script>
-(function(){
-'use strict';
-const status=document.getElementById('status'),link=document.getElementById('open'),download=document.getElementById('download');
-const enc=new TextEncoder(),B='/LUX';
-function fmt(n){return Number(n.toFixed(6));}
-function plane(name,x0,y0,x1,y1,z,mat,vis){
- const corners=[[x0,y0,z],[x1,y0,z],[x1,y1,z],[x0,y1,z]];
- const u=x=>(x+3.81)/7.62,v=y=>(y+.6096)/1.2192;
- const uv=[[u(x0),v(y0)],[u(x1),v(y0)],[u(x1),v(y1)],[u(x0),v(y1)]];
- const tup=a=>'('+a.map(fmt).join(', ')+')';
- return ['def Mesh "'+name+'" {',vis?'token visibility = "'+vis+'"':'',
- 'int[] faceVertexCounts = [4]','int[] faceVertexIndices = [0,1,2,3]',
- 'point3f[] points = ['+corners.map(tup).join(', ')+']',
- 'normal3f[] normals = [(0,0,1)] (interpolation = "constant")',
- 'texCoord2f[] primvars:st = ['+uv.map(tup).join(', ')+'] (interpolation = "faceVarying")',
- 'uniform token subdivisionScheme = "none"',
- 'rel material:binding = <'+B+'/Materials/'+mat+'>','}'].join('\n')+'\n';
-}
-function group(name,rect,z,mat,vis){
- return 'def Xform "'+name+'" {\n'+(vis?'token visibility = "'+vis+'"\n':'')+
-    plane('Surface',rect[0],rect[1],rect[2],rect[3],z,mat,'')+'}\n';
-}
-function action(edge){
- const title=edge[0].toUpperCase()+edge.slice(1);
- const path=B+'/Sample/';
- return ['def Preliminary_Behavior "Expand'+title+'" {',
- 'rel triggers = [<Tap>]','rel actions = [<Reveal>, <NewEdge>, <OldEdge>]',
- 'def Preliminary_Trigger "Tap" (inherits = </TapGestureTrigger>) {',
- 'rel affectedObjects = [<'+B+'/Controls/Handle'+title+'>]','}',
- 'def Preliminary_Action "Reveal" (inherits = </VisibilityAction>) {',
- 'rel affectedObjects = [<'+path+'Band'+title+'>]',
- 'uniform token motionType = "show"','uniform token style = "fade"','}',
- 'def Preliminary_Action "NewEdge" (inherits = </VisibilityAction>) {',
- 'rel affectedObjects = [<'+path+'Trim'+title+'Expanded>]',
- 'uniform token motionType = "show"','uniform token style = "fade"','}',
- 'def Preliminary_Action "OldEdge" (inherits = </VisibilityAction>) {',
- 'rel affectedObjects = [<'+path+'Trim'+title+'>]',
- 'uniform token motionType = "hide"','uniform token style = "fade"','}',
- '}'].join('\n')+'\n';
-}
-function scene(){
- const rows=[
- '#usda 1.0',
- '( defaultPrim = "LUX" upAxis = "Y" metersPerUnit = 1 )',
- 'def Xform "LUX" (prepend apiSchemas = ["Preliminary_AnchoringAPI"]) {',
- 'uniform token preliminary:anchoring:type = "plane"',
- 'uniform token preliminary:planeAnchoring:alignment = "vertical"',
- 'def Scope "Materials" {',
- 'def Material "Wood" {',
- 'token outputs:surface.connect = <'+B+'/Materials/Wood/Surface.outputs:surface>',
- 'def Shader "Surface" {',
- 'uniform token info:id = "UsdPreviewSurface"',
- 'color3f inputs:diffuseColor.connect = <'+B+'/Materials/Wood/Image.outputs:rgb>',
- 'float inputs:roughness = .88','float inputs:metallic = 0','token outputs:surface','}',
- 'def Shader "Image" {',
- 'uniform token info:id = "UsdUVTexture"','asset inputs:file = @heartwood.jpg@',
- 'token inputs:sourceColorSpace = "sRGB"',
- 'float2 inputs:st.connect = <'+B+'/Materials/Wood/St.outputs:result>',
- 'float3 outputs:rgb','}',
- 'def Shader "St" {','uniform token info:id = "UsdPrimvarReader_float2"',
- 'token inputs:varname = "st"','float2 outputs:result','}','}',
- 'def Material "Edge" {',
- 'token outputs:surface.connect = <'+B+'/Materials/Edge/S.outputs:surface>',
- 'def Shader "S" {','uniform token info:id = "UsdPreviewSurface"',
- 'color3f inputs:diffuseColor = (.21,.16,.13)','float inputs:roughness = .8','token outputs:surface','}','}',
- 'def Material "Button" {',
- 'token outputs:surface.connect = <'+B+'/Materials/Button/S.outputs:surface>',
- 'def Shader "S" {','uniform token info:id = "UsdPreviewSurface"',
- 'color3f inputs:diffuseColor = (1,1,1)','float inputs:roughness = .6','token outputs:surface','}','}',
- '}',
- 'def Xform "Sample" {'
- ];
- let out=rows.join('\n')+'\n';
- const w=.67,h=.40,sx=.33,sy=.17;
- out+=plane('Center',-w,-h,w,h,.012,'Wood','');
- const regions={
-  Top:[-w,h,w,h+sy],Bottom:[-w,-h-sy,w,-h],
-  Left:[-w-sx,-h,-w,h],Right:[w,-h,w+sx,h]
- };
- const edges={
-  Top:[[ -w,h-.012,w,h+.012],[-w,h+sy-.012,w,h+sy+.012]],
-  Bottom:[[-w,-h-.012,w,-h+.012],[-w,-h-sy-.012,w,-h-sy+.012]],
-  Left:[[-w-.012,-h,-w+.012,h],[-w-sx-.012,-h,-w-sx+.012,h]],
-  Right:[[w-.012,-h,w+.012,h],[w+sx-.012,-h,w+sx+.012,h]]
- };
- for(const side of Object.keys(regions)){
-  out+=group('Band'+side,regions[side],.015,'Wood','invisible');
-  out+=group('Trim'+side,edges[side][0],.042,'Edge','');
-  out+=group('Trim'+side+'Expanded',edges[side][1],.043,'Edge','invisible');
- }
- out+='}\ndef Xform "Controls" {\n';
- const markers={
-  Top:[-.09,h+.035,.09,h+.18],Bottom:[-.09,-h-.18,.09,-h-.035],
-  Left:[-w-.18,-.08,-w-.035,.08],Right:[w+.035,-.08,w+.18,.08]
- };
- for(const side of Object.keys(markers))out+=group('Handle'+side,markers[side],.095,'Button','');
- out+='}\ndef Xform "Behaviors" {\n';
- for(const side of ['top','bottom','left','right'])out+=action(side);
- out+='}\n}\n';
- return out;
-}
-function crc32(a){
- let c=-1;for(const x of a){c^=x;for(let i=0;i<8;i++)c=(c>>>1)^((c&1)?0xedb88320:0);}
- return (c^(-1))>>>0;
-}
-function num(n,len){const a=new Uint8Array(len),d=new DataView(a.buffer);if(len===4)d.setUint32(0,n>>>0,true);else d.setUint16(0,n,true);return a;}
-function join(parts){
- const b=new Uint8Array(parts.reduce((k,a)=>k+a.length,0));let p=0;
- for(const a of parts){b.set(a,p);p+=a.length;}return b;
-}
-function zip(files){
- const locals=[],dir=[];let offset=0;
- for(const item of files){
-  const name=enc.encode(item[0]),data=item[1],sum=crc32(data);
-  // Align the start of file contents to 64 bytes as required by USDZ.
-  const padding=(64-((offset+30+name.length+4)%64))%64;
-  const extra=join([num(0,2),num(padding,2),new Uint8Array(padding)]);
-  const local=join([num(0x04034b50,4),num(20,2),num(0,2),num(0,2),num(0,2),num(0,2),
-    num(sum,4),num(data.length,4),num(data.length,4),num(name.length,2),num(extra.length,2),
-    name,extra,data]);
-  dir.push(join([num(0x02014b50,4),num(20,2),num(20,2),num(0,2),num(0,2),
-    num(0,2),num(0,2),num(sum,4),num(data.length,4),num(data.length,4),
-    num(name.length,2),num(0,2),num(0,2),num(0,2),num(0,2),num(0,4),num(offset,4),name]));
-  locals.push(local);offset+=local.length;
-  if((offset-data.length)%64!==0)throw Error('USDZ asset alignment error');
- }
- const central=join(dir),end=join([num(0x06054b50,4),num(0,2),num(0,2),
-   num(files.length,2),num(files.length,2),num(central.length,4),num(offset,4),num(0,2)]);
- return join([...locals,central,end]);
-}
-(async()=>{
- try{
-  const res=await fetch('./Textures/Heartwood/LAP%20HEARTWOOD.jpg');
-  if(!res.ok)throw Error('Texture not available (HTTP '+res.status+')');
-  const jpg=new Uint8Array(await res.arrayBuffer());
-  if(jpg[0]!==255||jpg[1]!==216)throw Error('Invalid texture');
-  const raw=zip([['scene.usda',enc.encode(scene())],['heartwood.jpg',jpg]]);
-  const url=URL.createObjectURL(new Blob([raw],{type:'model/vnd.usdz+zip'}));
-  link.href=url;link.download='lux-heartwood-quicklook.usdz';link.setAttribute('aria-disabled','false');
-  link.dataset.label='OPEN APPLE AR QUICK LOOK';link.setAttribute('aria-label','Open Apple AR Quick Look');
-  download.href=url;download.hidden=false;
-  status.textContent='Ready: '+Math.round(raw.length/1024)+' KB. Four USDZ tap behaviours and vertical-wall anchoring requested.';
- }catch(err){
-  console.error('[LUX USDZ]',err);
-  status.textContent='Failed to build Quick Look file: '+String(err.message||err);
-  link.dataset.label='QUICK LOOK NOT AVAILABLE';
- }
-})();
-})();
-</script></body></html>
+<h2>How to test</h2>
+<ol>
+<li>Open this page in <strong>Safari</strong> on the iPhone.</li>
+<li>Try Test A first. Does the red cube open? Can you place it in AR against a wall?</li>
+<li>If Test A works, try Test B. Can you see the woodgrain model and four white markers?</li>
+<li>Tap the markers and see whether they reveal additional woodgrain without closing AR.</li>
+</ol>
+<p class="note">The four controls are experimental, one-step actions—not continuous draggable handles yet. If Test A fails, the issue is loading, packaging or Quick Look itself; if A works but B fails, the issue is in our materials/behaviors. Neither result should be mistaken for production readiness.</p>
+</main></body></html>
