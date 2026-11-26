@@ -38,6 +38,18 @@ jobs:
                       assert 'VisibilityAction' in src
           print('Archive checks passed')
           PY
+      - name: Parse both USDZ scenes with the official OpenUSD reader
+        run: |
+          python -m pip install --quiet usd-core
+          python - <<'PY'
+          from pxr import Usd
+          for file in ['quicklook/lux-quicklook-smoke.usdz', 'quicklook/lux-heartwood-interactive.usdz']:
+              stage = Usd.Stage.Open(file)
+              assert stage is not None, 'OpenUSD could not parse: ' + file
+              prim = stage.GetDefaultPrim()
+              assert prim and prim.IsValid(), 'Missing default prim: ' + file
+              print('OpenUSD parse passed:', file, 'root:', str(prim.GetPath()))
+          PY
       - name: Commit generated USDZ to main for GitHub Pages
         run: |
           git config user.name "github-actions[bot]"
