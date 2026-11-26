@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111715">
+<title>LUX | Native AR real profile and resize test</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#101613;color:#f1f4f0;font:15px/1.48 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+main{max-width:670px;padding:24px 18px 50px;margin:auto}
+header{display:flex;align-items:center;justify-content:space-between;gap:14px}
+header img{max-height:50px;max-width:112px;object-fit:contain}header span{font-size:10px;letter-spacing:1.2px;color:#aab8ad;text-align:right}
+h1{font-size:clamp(26px,6.5vw,39px);line-height:1.1;letter-spacing:-.8px;margin:32px 0 12px}
+p{color:#c9d7cc}strong{color:#fff}
+.preview{border-radius:12px;border:7px solid #393228;overflow:hidden;margin:24px 0 6px;height:250px;background:url("./Textures/Heartwood/LAP%20HEARTWOOD.jpg") center/cover no-repeat}
+.caption{display:block;color:#a5b2a8;font-size:11px;margin-bottom:22px}
+.test{padding:17px;border:1px solid #36433b;border-radius:12px;background:#1b2520;margin:12px 0}
+h2{font-size:16px;margin:0 0 5px} .test p{font-size:12px;line-height:1.5;margin:0 0 15px}
+.ar{display:flex;align-items:center;justify-content:center;background:#bd2038;border-radius:10px;min-height:55px;color:#fff;text-decoration:none}
+.ar img{display:block;width:24px;height:24px;margin-right:10px;object-fit:contain}
+.ar:after{content:attr(data-label);font-size:12px;font-weight:800;letter-spacing:.5px}
+.note{font-size:12px;padding:10px 12px;border-left:2px solid #b8bfb9;background:#202b23;margin:22px 0}
+ol{padding-left:22px;color:#d5dfd7;font-size:13px}li{padding:4px 0}
+footer{font-size:10px;color:#99a69c;margin-top:30px}
+</style></head>
+<body><main>
+<header><img src="./LUX%20Logo%20white.png" alt="LUX"><span>NATIVE QUICK LOOK<br>REAL PROFILE · TEST 03</span></header>
+<h1>West Coast Naturals<br>Real profile on your wall</h1>
+<p>Both tests use your original <strong>V-Groove/Lap GLB geometry</strong> and <strong>Heartwood LAP woodgrain</strong>, with Apple's native tracking—no browser SLAM.</p>
+<div class="preview"></div>
+<small class="caption">Original woodgrain and UV mapping retained. Geometry is cropped rather than texture-stretched.</small>
+<section class="test">
+<h2>A — Actual LUX profile, wall placement</h2>
+<p>First confirm that the V-Groove/Lap profile now faces the wall correctly. No tap controls to interfere with model loading.</p>
+<a class="ar" rel="ar" href="./quicklook/lux-real-lap-wall.usdz" data-label="OPEN REAL PROFILE IN AR"><img src="./ICONS/EXPAND.png" alt="Open real profile in AR"></a>
+</section>
+<section class="test">
+<h2>B — Actual LUX profile + four resize controls</h2>
+<p>Same 3D profile with four white square handles. Each is intended to reveal another 36 cm of the continuous profile and move its own edge trim, without resizing the texture.</p>
+<a class="ar" rel="ar" href="./quicklook/lux-real-lap-resize.usdz" data-label="TEST FOUR RESIZE HANDLES"><img src="./ICONS/EXPAND.png" alt="Test four resize handles"></a>
+</section>
+<ol>
+<li>Open this page in <strong>iPhone Safari</strong>.</li>
+<li>Try <strong>A</strong> first. The panel should now face the wall, not appear as an overhead soffit.</li>
+<li>Try <strong>B</strong>. Tap each white square <em>inside the AR scene</em> and check for expansion or a flip animation.</li>
+<li>Walk around as before to check placement stability.</li>
+</ol>
+<p class="note"><strong>Important:</strong> A normal webpage cannot send arbitrary JavaScript commands into Quick Look while AR is open. This prototype tests Apple's in-file tap actions instead. They are discrete steps, not Aero's continuous dragging yet, and need verification on your iPhone.</p>
+<footer>Original main visualizer and previous Quick Look tests are unchanged.</footer>
+</main></body></html>
