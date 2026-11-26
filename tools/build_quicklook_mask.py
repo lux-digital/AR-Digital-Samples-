@@ -24,19 +24,29 @@ START_WIDTH = (0.80,1.40,2.00)
 SHIFT = .60
 FULL = (-5.72446,-2.93751,5.72446,2.93751)
 
-def slab_mesh(name,x0,x1,z0,z1,depth=.089,material_name="Mask",color=False):
-    p=[(x0,depth,z0),(x1,depth,z0),(x1,depth,z1),(x0,depth,z1)]
-    pts=", ".join(triple(t) for t in p)
-    return f'''def Mesh "{name}"
+def slab_mesh(name,x0,x1,z0,z1,depth=.62,material_name="Mask",color=False):
+    """A real OPAQUE 3D blocker visible from BOTH sides of the original panel.
+
+    The previous matte was a single-face polygon; in Apple's renderer it could be
+    culled from the viewer's side. A thick USD Cube uses closed watertight faces
+    and has its front and rear outside the original product plane at y~.03.
+    """
+    midx=(x0+x1)/2
+    midz=(z0+z1)/2
+    width=x1-x0
+    height=z1-z0
+    if width<=0 or height<=0:
+        raise ValueError("Invalid matte bounds")
+    return f'''def Cube "{name}"
 {{
-    uniform bool doubleSided = true
-    uniform token subdivisionScheme = "none"
-    int[] faceVertexCounts = [4]
-    int[] faceVertexIndices = [0,1,2,3]
-    point3f[] points = [{pts}]
+    double size = 1
+    double3 xformOp:translate = {triple((midx,0,midz))}
+    double3 xformOp:scale = {triple((width,depth,height))}
+    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]
     rel material:binding = <{B}/Materials/{material_name}>
 }}
 '''
+
 
 def plain_mat(name,rgb,opacity=1.0):
     return f'''def Material "{name}"
@@ -100,8 +110,8 @@ def Xform "LUXRealLap" (
     # Local coords are authored relative to the CURRENT right-edge position.
     # TransformAction target will add +0.60 metres in model X.
     right=slab_mesh("Matte",0,6.3,-3.1,3.1)
-    trim=slab_mesh("EdgeTrim",-.025,.0,-.55,.55,.108,"Trim")
-    button=cube("Handle",(-.08,.18,0),(.13,.08,.15),(.97,.97,.91))
+    trim=slab_mesh("EdgeTrim",-.025,.0,-.55,.55,.69,"Trim")
+    button=cube("Handle",(-.11,.47,0),(.26,.13,.28),(.99,.97,.9))
     a+=mask_xform("Right",right,trim,offset=x,button=button)
     a+='}\n'
     a+=f'''def Xform "Targets"
@@ -134,16 +144,27 @@ def Xform "LUXRealLap" (
    )
    {{
       uniform token type = "parallel"
-      rel actions = [<Move>]
+      rel actions = [<Move>, <ButtonFeedback>]
    }}
    def Preliminary_Action "Move" (
       inherits = </TransformAction>
    )
    {{
+      uniform token info:id = "Transform"
+      uniform token type = "absolute"
       rel affectedObjects = [<{B}/Masks/Right>]
       rel xformTarget = [<{B}/Targets/NextRight>]
       double duration = 0.8
-      uniform token easeType = "easeInOut"
+      uniform token easeType = "inout"
+   }}
+   def Preliminary_Action "ButtonFeedback" (
+      inherits = </EmphasizeAction>
+   )
+   {{
+      uniform token info:id = "Emphasize"
+      rel affectedObjects = [<{B}/Masks/Right/Handle>]
+      uniform token motionType = "flip"
+      double duration = 0.5
    }}
  }}
 '''
@@ -153,7 +174,9 @@ def main():
     original=load_original()
     for i,x in enumerate(START_WIDTH):
         usda=scene_usd(original,x)
-        assert usda.count("def Mesh")==6 # full product, 4 mattes and 1 trim
+        assert usda.count("def Mesh")==1 # one complete original mesh; blockers are closed USD Cubes
+        assert usda.count("def Cube")>=6
+        assert 'uniform token info:id = "Transform"' in usda
         fn=OUT/f"lux-mask-test-{i}.usdz"
         pack_usdz(fn,[("scene.usda",usda.encode("utf-8")),("wood.jpg",WOOD),("trim.jpg",TRIM)])
         print("BUILT",fn,"size",fn.stat().st_size,"right",x)
